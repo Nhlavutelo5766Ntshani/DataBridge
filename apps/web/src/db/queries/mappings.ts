@@ -142,7 +142,8 @@ export async function updateTableMapping(
   id: string,
   data: Partial<NewTableMapping>
 ): Promise<TableMapping> {
-  const { id: _, ...rest } = data as any;
+  const rest = { ...data };
+  delete rest.id;
   
   const result = await db
     .update(tableMappings)
@@ -163,7 +164,8 @@ export async function updateColumnMapping(
   id: string,
   data: Partial<NewColumnMapping>
 ): Promise<ColumnMapping> {
-  const { id: _, ...rest } = data as any;
+  const rest = { ...data };
+  delete rest.id;
   
   const result = await db
     .update(columnMappings)

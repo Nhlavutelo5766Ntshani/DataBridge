@@ -193,7 +193,7 @@ export function ScheduleManagementDialog({
             {existingSchedule ? "Edit Schedule" : "Create Schedule"}
           </DialogTitle>
           <DialogDescription>
-            Configure when this project's DAG should run automatically in Airflow.
+            Configure when this project&apos;s DAG should run automatically in Airflow.
           </DialogDescription>
         </DialogHeader>
 
@@ -246,7 +246,7 @@ export function ScheduleManagementDialog({
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Format: minute hour day month weekday (e.g., "0 9 * * 1-5" for weekdays at 9 AM)
+                Format: minute hour day month weekday (e.g., &quot;0 9 * * 1-5&quot; for weekdays at 9 AM)
               </p>
             </div>
           )}

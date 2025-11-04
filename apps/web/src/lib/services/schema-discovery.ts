@@ -3,7 +3,7 @@ import mssql from "mssql";
 import mysql from "mysql2/promise";
 import { MongoClient } from "mongodb";
 import nano from "nano";
-import type { DatabaseSchema, SchemaDiscoveryConnection } from "@/lib/types/schema";
+import type { DatabaseSchema, SchemaDiscoveryConnection, TableSchema } from "@/lib/types/schema";
 
 /**
  * Discover database schema based on connection type
@@ -77,7 +77,7 @@ async function discoverPostgreSQLSchema(
 
     await sql.end();
 
-    const tableMap = new Map<string, any>();
+    const tableMap = new Map<string, TableSchema>();
     
     for (const row of tables) {
       if (!tableMap.has(row.table_name)) {
@@ -88,7 +88,7 @@ async function discoverPostgreSQLSchema(
         });
       }
       
-      tableMap.get(row.table_name).columns.push({
+      tableMap.get(row.table_name)!.columns.push({
         name: row.column_name,
         dataType: row.data_type,
         isNullable: row.is_nullable === "YES",
@@ -164,7 +164,7 @@ async function discoverSQLServerSchema(
 
     await pool.close();
 
-    const tableMap = new Map<string, any>();
+    const tableMap = new Map<string, TableSchema>();
     
     for (const row of result.recordset) {
       if (!tableMap.has(row.TABLE_NAME)) {
@@ -175,7 +175,7 @@ async function discoverSQLServerSchema(
         });
       }
       
-      tableMap.get(row.TABLE_NAME).columns.push({
+      tableMap.get(row.TABLE_NAME)!.columns.push({
         name: row.COLUMN_NAME,
         dataType: row.DATA_TYPE,
         isNullable: row.IS_NULLABLE === "YES",
@@ -240,25 +240,28 @@ async function discoverMySQLSchema(
 
     await mysqlConnection.end();
 
-    const tableMap = new Map<string, any>();
-    const rows = tables as any[];
+    const tableMap = new Map<string, TableSchema>();
+    const rows = tables as Array<Record<string, unknown>>;
     
     for (const row of rows) {
-      if (!tableMap.has(row.TABLE_NAME)) {
-        tableMap.set(row.TABLE_NAME, {
-          name: row.TABLE_NAME,
-          schema: row.TABLE_SCHEMA,
+      const tableName = row.TABLE_NAME as string;
+      const tableSchema = row.TABLE_SCHEMA as string;
+      
+      if (!tableMap.has(tableName)) {
+        tableMap.set(tableName, {
+          name: tableName,
+          schema: tableSchema,
           columns: [],
         });
       }
       
-      tableMap.get(row.TABLE_NAME).columns.push({
-        name: row.COLUMN_NAME,
-        dataType: row.DATA_TYPE,
+      tableMap.get(tableName)!.columns.push({
+        name: row.COLUMN_NAME as string,
+        dataType: row.DATA_TYPE as string,
         isNullable: row.IS_NULLABLE === "YES",
         isPrimaryKey: row.IS_PRIMARY_KEY === 1,
-        maxLength: row.CHARACTER_MAXIMUM_LENGTH,
-        defaultValue: row.COLUMN_DEFAULT,
+        maxLength: row.CHARACTER_MAXIMUM_LENGTH as number | null,
+        defaultValue: row.COLUMN_DEFAULT as string | null,
       });
     }
 
@@ -344,9 +347,9 @@ async function discoverCouchDBSchema(
     const allDocs = await db.list({ limit: 1, include_docs: true });
     
     const columns = allDocs.rows.length > 0 && allDocs.rows[0].doc
-      ? Object.keys(allDocs.rows[0].doc).map(key => ({
+      ? Object.keys(allDocs.rows[0].doc as unknown as Record<string, unknown>).map(key => ({
           name: key,
-          dataType: typeof (allDocs.rows[0].doc as any)[key],
+          dataType: typeof (allDocs.rows[0].doc as unknown as Record<string, unknown>)[key],
           isNullable: true,
           isPrimaryKey: key === "_id",
           maxLength: null,

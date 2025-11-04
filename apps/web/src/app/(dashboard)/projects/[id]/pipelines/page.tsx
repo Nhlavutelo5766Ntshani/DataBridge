@@ -74,7 +74,7 @@ const PipelinePage = async ({ params }: PipelinePageProps) => {
             <CardTitle className="text-amber-900 dark:text-amber-100">Single Pipeline Project</CardTitle>
             <CardDescription className="text-amber-700 dark:text-amber-300">
               This project uses a single pipeline configuration. To use multiple pipelines, 
-              consider creating a new project with the "Multi-Pipeline" strategy.
+              consider creating a new project with the &quot;Multi-Pipeline&quot; strategy.
             </CardDescription>
           </CardHeader>
         </Card>

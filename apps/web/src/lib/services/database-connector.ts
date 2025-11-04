@@ -7,7 +7,7 @@ import nano from "nano";
 
 type Connection = typeof connections.$inferSelect;
 
-type DatabaseClient = PostgreSQLPool | mysql.Connection | sql.ConnectionPool | MongoClient | nano.ServerScope;
+export type DatabaseClient = PostgreSQLPool | mysql.Connection | sql.ConnectionPool | MongoClient | nano.ServerScope;
 
 /**
  * Creates a database connection with connection pooling

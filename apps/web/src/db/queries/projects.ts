@@ -47,7 +47,8 @@ export async function getUserProjects(
 export async function createProject(
   projectData: NewMappingProject
 ): Promise<MappingProject> {
-  const { id, ...rest } = projectData;
+  const rest = { ...projectData };
+  delete rest.id;
   const [newProject] = await db.insert(mappingProjects).values(rest).returning();
 
   if (!newProject) {
@@ -67,7 +68,8 @@ export async function updateProject(
   projectId: string,
   projectData: Partial<NewMappingProject>
 ): Promise<MappingProject> {
-  const { id, ...rest } = projectData;
+  const rest = { ...projectData };
+  delete rest.id;
   const [updatedProject] = await db
     .update(mappingProjects)
     .set({ ...rest, updatedAt: new Date() })

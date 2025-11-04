@@ -115,7 +115,7 @@ export function ScheduleCard({ schedule, projectId, onUpdate }: ScheduleCardProp
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              DAG will run manually or use Airflow's default "@daily" schedule
+              DAG will run manually or use Airflow&apos;s default &quot;@daily&quot; schedule
             </p>
           </CardContent>
         </Card>
@@ -235,7 +235,7 @@ export function ScheduleCard({ schedule, projectId, onUpdate }: ScheduleCardProp
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Schedule?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the scheduled execution for this project. The DAG will use Airflow's default "@daily"
+              This will remove the scheduled execution for this project. The DAG will use Airflow&apos;s default &quot;@daily&quot;
               schedule or run manually. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

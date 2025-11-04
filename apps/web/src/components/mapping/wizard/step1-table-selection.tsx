@@ -94,7 +94,7 @@ export const TableSelection = ({
             <ol className="list-decimal list-inside space-y-1 text-gray-600">
               <li>Select a source table from the left side</li>
               <li>Select one or more target tables from the right side (checkboxes will appear)</li>
-              <li>Click "Map Selected Tables" to create the mappings</li>
+              <li>Click &quot;Map Selected Tables&quot; to create the mappings</li>
               <li>Repeat for additional source tables</li>
             </ol>
           </div>

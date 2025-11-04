@@ -33,6 +33,7 @@ export const MigrationExecution = ({
 
   useEffect(() => {
     startMigration();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startMigration = async () => {

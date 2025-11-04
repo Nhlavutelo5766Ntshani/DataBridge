@@ -46,7 +46,7 @@ const SignupPage = () => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       router.push(PATHS.DASHBOARD.HOME);
-    } catch (err) {
+    } catch {
       setError("Failed to create account. Please try again.");
     } finally {
       setIsLoading(false);

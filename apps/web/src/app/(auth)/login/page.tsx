@@ -33,7 +33,7 @@ const LoginPage = () => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       router.push(PATHS.DASHBOARD.HOME);
-    } catch (err) {
+    } catch {
       setError("Invalid email or password");
     } finally {
       setIsLoading(false);
@@ -85,7 +85,7 @@ const LoginPage = () => {
             {isLoading ? "Signing in..." : "Sign In"}
           </Button>
           <p className="text-sm text-center text-muted-foreground">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               href={PATHS.PUBLIC.SIGNUP}
               className="text-primary hover:underline"
