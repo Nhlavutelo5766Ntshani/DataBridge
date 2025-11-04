@@ -15,6 +15,10 @@ on:
     paths:
       - 'airflow/dags/**'
 
+permissions:
+  contents: write
+  pull-requests: read
+
 env:
   PYTHON_VERSION: '3.11'
   AIRFLOW_VERSION: '2.8.0'
@@ -212,8 +216,9 @@ jobs:
           text: 'DAG deployment to Production: ${{ job.status }}'
           webhook_url: ${{ vars.SLACK_WEBHOOK_URL }}
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release (Optional)
         if: success()
+        continue-on-error: true
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
