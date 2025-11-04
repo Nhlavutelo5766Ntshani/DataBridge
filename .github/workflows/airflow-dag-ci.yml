@@ -36,8 +36,10 @@ jobs:
       - name: Check if DAGs exist
         id: check-dags
         run: |
-          if ls airflow/dags/*.py 1> /dev/null 2>&1; then
+          DAG_COUNT=$(find airflow/dags -name "*.py" -not -name "__*" 2>/dev/null | wc -l)
+          if [ "$DAG_COUNT" -gt 0 ]; then
             echo "has_dags=true" >> $GITHUB_OUTPUT
+            echo "✅ Found $DAG_COUNT DAG file(s)"
           else
             echo "has_dags=false" >> $GITHUB_OUTPUT
             echo "⚠️ No DAG files found - skipping validation"
