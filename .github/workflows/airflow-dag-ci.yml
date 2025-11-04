@@ -131,7 +131,7 @@ jobs:
           echo "  scp -r airflow/dags/* user@dev-airflow-host:/path/to/airflow/dags/"
 
       - name: Trigger Airflow DAG refresh (Optional)
-        if: vars.DEV_AIRFLOW_API_URL != ''
+        if: ${{ vars.DEV_AIRFLOW_API_URL != '' }}
         run: |
           curl -X POST "${{ vars.DEV_AIRFLOW_API_URL }}/api/v1/dags/~" \
             -H "Authorization: Bearer ${{ secrets.DEV_AIRFLOW_API_KEY }}" \
@@ -139,7 +139,7 @@ jobs:
             || echo "Could not trigger DAG refresh - Airflow will pick up changes automatically"
 
       - name: Send Slack notification (Optional)
-        if: vars.SLACK_WEBHOOK_URL != ''
+        if: ${{ vars.SLACK_WEBHOOK_URL != '' }}
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
@@ -167,7 +167,7 @@ jobs:
           echo "Author: ${{ github.actor }}"
 
       - name: Trigger Airflow DAG refresh (Optional)
-        if: vars.PROD_AIRFLOW_API_URL != ''
+        if: ${{ vars.PROD_AIRFLOW_API_URL != '' }}
         run: |
           curl -X POST "${{ vars.PROD_AIRFLOW_API_URL }}/api/v1/dags/~" \
             -H "Authorization: Bearer ${{ secrets.PROD_AIRFLOW_API_KEY }}" \
@@ -175,7 +175,7 @@ jobs:
             || echo "Could not trigger DAG refresh - Airflow will pick up changes automatically"
 
       - name: Verify deployment (Optional)
-        if: vars.PROD_AIRFLOW_API_URL != ''
+        if: ${{ vars.PROD_AIRFLOW_API_URL != '' }}
         run: |
           echo "Waiting for DAGs to load..."
           sleep 30
@@ -186,7 +186,7 @@ jobs:
             || echo "⚠️ Could not verify via API, but DAGs should load automatically"
 
       - name: Send Slack notification (Optional)
-        if: vars.SLACK_WEBHOOK_URL != ''
+        if: ${{ vars.SLACK_WEBHOOK_URL != '' }}
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
