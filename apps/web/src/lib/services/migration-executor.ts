@@ -517,7 +517,7 @@ async function getTableRowCount(
         const result = await sql`SELECT COUNT(*) as count FROM ${sql(tableName)}`;
         await sql.end();
         return Number(result[0].count);
-      } catch (error) {
+      } catch {
         await sql.end();
         return 0;
       }
@@ -540,7 +540,7 @@ async function getTableRowCount(
         const result = await pool.request().query(`SELECT COUNT(*) as count FROM ${tableName}`);
         await pool.close();
         return result.recordset[0].count;
-      } catch (error) {
+      } catch {
         await pool.close();
         return 0;
       }
@@ -559,7 +559,7 @@ async function getTableRowCount(
         await mysqlConnection.end();
         const result = rows as { count: number }[];
         return result[0].count;
-      } catch (error) {
+      } catch {
         await mysqlConnection.end();
         return 0;
       }

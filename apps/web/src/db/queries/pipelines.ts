@@ -117,7 +117,8 @@ export async function updatePipeline(
   id: string,
   data: Partial<NewPipeline>
 ): Promise<Pipeline> {
-  const { id: _, ...rest } = data as any;
+  const rest = { ...data };
+  delete rest.id;
 
   const result = await db
     .update(pipelines)
@@ -260,7 +261,8 @@ export async function updateProjectExecution(
   id: string,
   data: Partial<NewProjectExecution>
 ): Promise<ProjectExecution> {
-  const { id: _, ...rest } = data as any;
+  const rest = { ...data };
+  delete rest.id;
 
   const result = await db
     .update(projectExecutions)
@@ -351,7 +353,8 @@ export async function updatePipelineExecution(
   id: string,
   data: Partial<NewPipelineExecution>
 ): Promise<PipelineExecution> {
-  const { id: _, ...rest } = data as any;
+  const rest = { ...data };
+  delete rest.id;
 
   const result = await db
     .update(pipelineExecutions)
@@ -433,7 +436,8 @@ export async function updateSchedule(
   id: string,
   data: Partial<NewSchedule>
 ): Promise<Schedule> {
-  const { id: _, ...rest } = data as any;
+  const rest = { ...data };
+  delete rest.id;
 
   const result = await db
     .update(schedules)
@@ -526,7 +530,9 @@ export async function updateAirflowDagRun(
   dagRunId: string,
   data: Partial<NewAirflowDagRun>
 ): Promise<AirflowDagRun> {
-  const { dagId: _, dagRunId: __, ...rest } = data as any;
+  const rest = { ...data };
+  delete rest.dagId;
+  delete rest.dagRunId;
 
   const result = await db
     .update(airflowDagRuns)

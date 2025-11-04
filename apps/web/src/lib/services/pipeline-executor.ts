@@ -1,15 +1,16 @@
-import { pipelines, pipelineExecutions, projectExecutions, connections } from "@databridge/schema";
+import { pipelines, pipelineExecutions, projectExecutions, connections, columnMappings } from "@databridge/schema";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
 import type { QueryResponse } from "@/db/types/queries";
 import { getConnectionById } from "@/db/queries/connections";
 import { getTableMappingsByPipeline } from "@/db/queries/mappings";
-import { createDatabaseConnection, closeDatabaseConnection } from "@/lib/services/database-connector";
+import { createDatabaseConnection, closeDatabaseConnection, type DatabaseClient } from "@/lib/services/database-connector";
 import { applyTransformation } from "@/lib/services/transformation-engine";
 
 type Pipeline = typeof pipelines.$inferSelect;
 type PipelineExecution = typeof pipelineExecutions.$inferSelect;
 type Connection = typeof connections.$inferSelect;
+type ColumnMapping = typeof columnMappings.$inferSelect;
 
 const DEFAULT_BATCH_SIZE = 1000;
 const MAX_RETRIES = 3;
@@ -29,8 +30,8 @@ export async function executePipeline(
   pipeline: Pipeline
 ): Promise<QueryResponse<PipelineExecution>> {
   let pipelineExecutionId: string | undefined;
-  let sourceClient: any;
-  let targetClient: any;
+  let sourceClient: DatabaseClient | undefined;
+  let targetClient: DatabaseClient | undefined;
   
   try {
     const [projectExec] = await db
@@ -152,11 +153,11 @@ export async function executePipeline(
  * Migrates data for a single table mapping with batch processing
  */
 async function migrateTable(
-  sourceClient: any,
-  targetClient: any,
+  sourceClient: DatabaseClient,
+  targetClient: DatabaseClient,
   sourceConnection: Connection,
   targetConnection: Connection,
-  tableMapping: any,
+  tableMapping: ReturnType<typeof getTableMappingsByPipeline> extends Promise<infer U> ? U extends (infer T)[] ? T : never : never,
   executionId: string
 ): Promise<{ processed: number; failed: number }> {
   let processed = 0;
@@ -185,14 +186,14 @@ async function migrateTable(
           break;
         }
 
-        const transformedBatch = await transformBatch(batch, columnMappings);
+        const transformedBatch = await transformBatch(batch, columnMappings as ColumnMapping[]);
 
         await loadBatch(
           targetClient,
           targetConnection,
           tableMapping.targetTable,
           transformedBatch,
-          columnMappings
+          columnMappings as ColumnMapping[]
         );
 
         processed += batch.length;
@@ -222,12 +223,12 @@ async function migrateTable(
  * Supports all database types with optimized queries
  */
 async function extractBatch(
-  client: any,
+  client: DatabaseClient,
   connection: Connection,
   tableName: string,
   offset: number,
   limit: number
-): Promise<any[]> {
+): Promise<Record<string, unknown>[]> {
   const dbType = connection.dbType;
 
   switch (dbType) {
@@ -235,17 +236,17 @@ async function extractBatch(
     case "mysql":
     case "sqlserver":
       const query = `SELECT * FROM ${tableName} ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${limit} ROWS ONLY`;
-      const result = await client.query(query);
-      return result.rows || result.recordset || result;
+      const result = await (client as { query: (q: string) => Promise<{ rows?: unknown[]; recordset?: unknown[] }> }).query(query);
+      return (result.rows || result.recordset || result) as Record<string, unknown>[];
 
     case "mongodb":
-      const collection = client.db(connection.database).collection(tableName);
+      const collection = (client as { db: (name: string) => { collection: (name: string) => { find: () => { skip: (n: number) => { limit: (n: number) => { toArray: () => Promise<Record<string, unknown>[]> } } } } } }).db(connection.database).collection(tableName);
       return await collection.find().skip(offset).limit(limit).toArray();
 
     case "couchdb":
-      const db = client.use(connection.database);
+      const db = (client as { use: (name: string) => { list: (opts: unknown) => Promise<{ rows: Array<{ doc: Record<string, unknown> }> }> } }).use(connection.database);
       const response = await db.list({ include_docs: true, skip: offset, limit });
-      return response.rows.map((row: any) => row.doc);
+      return response.rows.map((row) => row.doc);
 
     default:
       throw new Error(`Unsupported database type: ${dbType}`);
@@ -256,19 +257,19 @@ async function extractBatch(
  * Applies transformations to a batch of records
  */
 async function transformBatch(
-  batch: any[],
-  columnMappings: any[]
-): Promise<any[]> {
+  batch: Record<string, unknown>[],
+  columnMappings: ColumnMapping[]
+): Promise<Record<string, unknown>[]> {
   return batch.map(record => {
-    const transformed: any = {};
+    const transformed: Record<string, unknown> = {};
 
     for (const mapping of columnMappings) {
       const sourceValue = record[mapping.sourceColumn];
       
-      if (mapping.transformationConfig) {
+      if (mapping.transformationConfig && typeof mapping.transformationConfig === 'object') {
         const transformedValue = applyTransformation(
           sourceValue,
-          mapping.transformationConfig
+          mapping.transformationConfig as never
         );
         transformed[mapping.targetColumn] = transformedValue;
       } else {
@@ -285,11 +286,11 @@ async function transformBatch(
  * Uses bulk insert for performance
  */
 async function loadBatch(
-  client: any,
+  client: DatabaseClient,
   connection: Connection,
   tableName: string,
-  batch: any[],
-  columnMappings: any[]
+  batch: Record<string, unknown>[],
+  columnMappings: ColumnMapping[]
 ): Promise<void> {
   if (batch.length === 0) return;
 
@@ -321,9 +322,9 @@ async function loadBatch(
  * PostgreSQL bulk insert with COPY for maximum performance
  */
 async function loadPostgreSQL(
-  client: any,
+  client: DatabaseClient,
   tableName: string,
-  batch: any[],
+  batch: Record<string, unknown>[],
   columns: string[]
 ): Promise<void> {
   const placeholders = batch.map((_, i) => 
@@ -333,35 +334,35 @@ async function loadPostgreSQL(
   const values = batch.flatMap(record => columns.map(col => record[col]));
   
   const query = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES ${placeholders}`;
-  await client.query(query, values);
+  await (client as { query: (q: string, params?: unknown[]) => Promise<unknown> }).query(query, values);
 }
 
 /**
  * MySQL bulk insert
  */
 async function loadMySQL(
-  client: any,
+  client: DatabaseClient,
   tableName: string,
-  batch: any[],
+  batch: Record<string, unknown>[],
   columns: string[]
 ): Promise<void> {
   const placeholders = batch.map(() => `(${columns.map(() => '?').join(', ')})`).join(', ');
   const values = batch.flatMap(record => columns.map(col => record[col]));
   
   const query = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES ${placeholders}`;
-  await client.query(query, values);
+  await (client as { query: (q: string, params?: unknown[]) => Promise<unknown> }).query(query, values);
 }
 
 /**
  * SQL Server bulk insert with table-valued parameters
  */
 async function loadSQLServer(
-  client: any,
+  client: DatabaseClient,
   tableName: string,
-  batch: any[],
+  batch: Record<string, unknown>[],
   columns: string[]
 ): Promise<void> {
-  const request = client.request();
+  const request = (client as { request: () => { input: (name: string, value: unknown) => void; query: (q: string) => Promise<unknown> } }).request();
   
   for (const record of batch) {
     for (const column of columns) {
@@ -379,12 +380,12 @@ async function loadSQLServer(
  * MongoDB bulk insert
  */
 async function loadMongoDB(
-  client: any,
+  client: DatabaseClient,
   database: string,
   collectionName: string,
-  batch: any[]
+  batch: Record<string, unknown>[]
 ): Promise<void> {
-  const collection = client.db(database).collection(collectionName);
+  const collection = (client as { db: (name: string) => { collection: (name: string) => { insertMany: (docs: unknown[], opts: unknown) => Promise<unknown> } } }).db(database).collection(collectionName);
   await collection.insertMany(batch, { ordered: false });
 }
 
@@ -392,11 +393,11 @@ async function loadMongoDB(
  * CouchDB bulk insert
  */
 async function loadCouchDB(
-  client: any,
+  client: DatabaseClient,
   database: string,
-  batch: any[]
+  batch: Record<string, unknown>[]
 ): Promise<void> {
-  const db = client.use(database);
+  const db = (client as { use: (name: string) => { bulk: (opts: unknown) => Promise<unknown> } }).use(database);
   await db.bulk({ docs: batch });
 }
 

@@ -34,6 +34,7 @@ export const MigrationPreview = ({
 
   useEffect(() => {
     loadPreviews();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadPreviews = async () => {
