@@ -20,6 +20,7 @@ export const users = pgTable(
     name: text("name").notNull(),
     role: text("role").notNull().default("developer"),
     isActive: boolean("is_active").default(true),
+    passwordHash: text("password_hash").notNull(),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
@@ -111,10 +112,7 @@ export const pipelines: ReturnType<typeof pgTable> = pgTable(
     targetConnectionId: uuid("target_connection_id").references(
       () => connections.id
     ),
-    dependsOnPipelineId: uuid("depends_on_pipeline_id").references(
-      (): any => pipelines,
-      { onDelete: "set null" }
-    ),
+    dependsOnPipelineId: uuid("depends_on_pipeline_id"),
     status: text("status").default("draft"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),

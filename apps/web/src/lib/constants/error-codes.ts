@@ -14,6 +14,7 @@ export const ERROR_CODES = {
   INVALID_FORMAT: "INVALID_FORMAT",
   TIMEOUT: "TIMEOUT",
   LIMIT_EXCEEDED: "LIMIT_EXCEEDED",
+  AUTH_ERROR: "AUTH_ERROR",
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -37,5 +38,6 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ERROR_CODES.INVALID_FORMAT]: "Invalid data format",
   [ERROR_CODES.TIMEOUT]: "The operation took too long to complete",
   [ERROR_CODES.LIMIT_EXCEEDED]: "Operation limits exceeded",
+  [ERROR_CODES.AUTH_ERROR]: "Authentication failed",
 };
 

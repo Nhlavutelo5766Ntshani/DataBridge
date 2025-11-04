@@ -17,21 +17,30 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PATHS } from "@/lib/constants/paths";
+import { loginAction } from "@/lib/actions/auth";
 
 const LoginPage = () => {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const formData = new FormData(e.currentTarget);
+      const result = await loginAction(formData);
+
+      if (!result.success) {
+        const errorMessage = Array.isArray(result.error) 
+          ? result.error.join(", ") 
+          : result.error || "Invalid email or password";
+        setError(errorMessage);
+        return;
+      }
+
       router.push(PATHS.DASHBOARD.HOME);
     } catch {
       setError("Invalid email or password");
@@ -59,10 +68,9 @@ const LoginPage = () => {
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
+              name="email"
               type="email"
               placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               required
               disabled={isLoading}
             />
@@ -71,10 +79,9 @@ const LoginPage = () => {
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
+              name="password"
               type="password"
               placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               required
               disabled={isLoading}
             />
