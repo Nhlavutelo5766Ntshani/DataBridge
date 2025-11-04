@@ -1,0 +1,371 @@
+# DataBridge - Integrove Internal Data Migration Platform
+
+You are an expert in TypeScript, React and Next.js 15, PostgreSQL, Drizzle ORM, Zod, Tailwind CSS, and data engineering.
+
+## 🚨 CRITICAL: PRODUCTION-READY CODE ONLY
+
+**THIS IS NOT A PROTOTYPE. THIS IS PRODUCTION.**
+
+- ✅ **Build for large-scale, production-ready environments**
+- ✅ **Design for high performance, scalability, and reliability**
+- ❌ **NEVER create "simplified", "demo", or "small-scale" versions**
+- ❌ **NEVER stub out functionality with placeholders or TODOs**
+- ❌ **NEVER skip implementation details "for brevity"**
+
+All code must be:
+- Production-grade with proper error handling, logging, and monitoring
+- Scalable to handle large datasets (millions of rows)
+- Optimized for performance (batch processing, streaming, connection pooling)
+- Enterprise-ready with proper transaction management and data integrity
+- Fully implemented, not conceptual or simplified
+
+## 🚨 CRITICAL: READ-ONLY FILES
+
+**NEVER DIRECTLY EDIT:**
+
+- Schema files (`packages/schema/`)
+- Migration files (`packages/schema/migrations/`)
+- Config files (`.env`, `package.json`, `next.config.js`, `tailwind.config.ts`, `drizzle.config.ts`)
+- `.cursorrules` (this file)
+
+**BEHAVIOR:** Read for context only. If changes needed, tell user what to do and provide CLI commands.
+
+## 🚫 NEVER DO
+
+### Code Quality
+
+- ❌ No hardcoded or mock data
+- ❌ No console.log or debugging statements
+- ❌ No inline comments (use JSDoc instead)
+- ❌ No inline type definitions (use shared types)
+- ❌ No hardcoded values (use constants or config)
+- ❌ No `any` type — use explicit TypeScript types
+- ❌ No classes (use functional patterns)
+
+### Architecture
+
+- ❌ Never edit read-only schema files
+- ❌ Never create new functions without checking for existing ones
+- ❌ Never skip error handling
+- ❌ Never use console.log in production code
+- ❌ Never use 'use server' in query layer files
+- ❌ Never put business logic in query layer
+
+## ✅ ALWAYS DO
+
+### Documentation & Types
+
+- ✅ Use JSDoc comments for all functions, types, and utilities (exclude UI components)
+- ✅ Use explicit TypeScript types for all state variables
+- ✅ Use shared types from `src/lib/types/`
+- ✅ Use arrow functions for React components
+- ✅ Use function keyword for utilities
+- ✅ Use types over interfaces
+- ✅ Never use `any` type
+
+### Architecture & Structure
+
+- ✅ Follow 3-layer architecture: Schema (READ-ONLY) → Queries (pure DB ops) → Actions (server actions)
+- ✅ Review CONTRIBUTING.md and schema before implementing changes
+- ✅ Check existing functions before creating new ones
+- ✅ Write modular and reusable code
+- ✅ Maintain consistent return types (`QueryResponse<T>`)
+- ✅ Query layer: No 'use server', no error handling, return direct DB types
+- ✅ Actions layer: Include 'use server', handle errors, return QueryResponse<T>
+
+### Error Handling
+
+- ✅ Use standardized error handling (`createErrorResponse`)
+- ✅ Use early returns to avoid deep nesting
+- ✅ Provide user-friendly error messages
+- ✅ Implement graceful fallbacks for failures
+- ✅ Use centralized error codes from `error-codes.ts`
+
+### File Organization
+
+- ✅ Organize files: main component → subcomponents → helpers → static content → types
+- ✅ Use named exports for all components
+- ✅ Keep complex schemas in separate `types.ts` files
+- ✅ Structure: `packages/schema/` (shared), `apps/web/src/db/queries/`, `apps/web/src/lib/actions/`
+
+### React & Components
+
+- ✅ Prefer functional components over classes
+- ✅ Use descriptive variable names (isLoading, hasError, etc.)
+- ✅ Define props with type aliases, not interface
+- ✅ Follow consistent naming conventions
+- ✅ Prefer Server Components where possible
+- ✅ Use Client Components only for interactivity
+
+### Next.js Patterns
+
+- ✅ Use Server Components for data fetching
+- ✅ Follow App Router conventions
+- ✅ Include clear loading and error states for each route
+- ✅ Use server actions for form submissions and mutations
+- ✅ Leverage Suspense boundaries for loading states
+
+### Database & API
+
+- ✅ Use server actions for form submissions and mutations
+- ✅ Implement Zod validation for runtime and type-safe checks
+- ✅ Handle transactions properly for multi-step operations
+- ✅ Use Drizzle ORM for all database operations
+- ✅ Always destructure `id` when creating/updating: `const { id, ...rest } = data`
+
+### Security
+
+- ✅ Sanitize all inputs to prevent XSS
+- ✅ Include authentication and authorization checks
+- ✅ Use environment variables for sensitive data
+- ✅ Consider rate limiting for APIs
+- ✅ Encrypt database connection credentials
+
+### Performance
+
+- ✅ Reduce client-side JavaScript (prefer server components)
+- ✅ Use memoization (React.memo, useMemo, useCallback) appropriately
+- ✅ Apply code splitting with dynamic imports
+- ✅ Optimize database queries for speed and efficiency
+- ✅ Use connection pooling for database operations
+
+## 🎯 Code Style Standards
+
+### TypeScript
+
+- Use strict mode
+- Types over interfaces
+- No enums (use const objects with "as const")
+- Explicit types for state variables
+- Zod for runtime validation
+
+### Component Pattern
+
+```typescript
+// Server component
+const MappingList = async ({ userId }: { userId: string }) => {
+  const result = await fetchUserMappingProjects(userId);
+  return <div>{/* ... */}</div>;
+};
+
+// Client component
+("use client");
+const InteractiveMapper = ({
+  onMap,
+}: {
+  onMap: (data: MappingData) => void;
+}) => {
+  return <div>{/* ... */}</div>;
+};
+```
+
+### Naming Conventions
+
+- Lowercase with dashes for directories (e.g., `components/mapping-canvas`)
+- Named exports for components
+- `page.tsx` for routes, `layout.tsx` for layouts
+- Query functions: `get`, `create`, `update`, `delete`
+- Action functions: `fetch`, `add`, `update`, `delete` + entity name
+
+## Code Style and Structure
+
+- Write concise, technical TypeScript code with accurate examples.
+- Use arrow functions for React components, use the "function" keyword only for utility functions.
+- Use functional and declarative programming patterns, avoid classes when possible.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError).
+- Structure files: exported component, subcomponents, helpers, static content, types.
+- Follow Next.js App Router conventions for file organization and routing.
+- Leverage server components where appropriate to reduce client-side JavaScript.
+
+## Naming Conventions
+
+- Use lowercase with dashes for directories (e.g., components/mapping-canvas).
+- Favor named exports for components.
+- Use page.tsx for route components and layout.tsx for layouts in the App Router.
+- Name API routes according to their function (e.g., route.ts for REST endpoints).
+
+## TypeScript Usage
+
+- Use TypeScript for all code and prefer types over interfaces, never use type any.
+- Write JSDoc comments for all functions, types, and utilities (excluding components).
+- Props should always be defined using type definitions, not interfaces.
+- Always add explicit types for state variables unless they can be clearly inferred from simple initializers.
+- Avoid enums; use const objects with "as const" and typeof instead.
+- Use arrow functions with TypeScript types for React components.
+- Use strict mode in TypeScript for better type safety.
+- Create separate type definition files (types.ts) for complex schemas.
+- Leverage Zod for runtime validation and TypeScript type inference.
+
+## UI and Styling
+
+- Use Tailwind CSS with consistent class ordering.
+- Implement responsive design with Tailwind breakpoint utilities.
+- Create reusable UI components in a separate directory.
+- Use CSS variables for theming and maintaining a consistent design system.
+- Ensure high accessibility (a11y) standards using ARIA roles and semantic HTML.
+- Utilize Tailwind dark mode support with the 'dark:' prefix.
+- Use CSS Grid for complex layouts and Flexbox for simpler alignments.
+
+## Performance Optimization
+
+- Minimize the use of client-side useState and useEffect; prefer server components where possible.
+- Use Next.js Image component for optimized images.
+- Implement proper code splitting with dynamic imports.
+- Utilize React.memo, useMemo, and useCallback appropriately to prevent unnecessary re-renders.
+- Take advantage of Next.js built-in optimizations like automatic static optimization.
+- Use Suspense boundaries strategically for loading states.
+- Implement proper caching strategies in data fetching functions.
+
+## Navigation
+
+- Use Next.js App Router for routing and navigation.
+- Leverage Link component for client-side navigation.
+- Implement dynamic routes using the [param] folder naming convention.
+- Use route groups for logical organization without affecting the URL structure.
+- Implement proper loading and error states for each route.
+- Use intercepting routes for modal patterns.
+- Leverage parallel routes for complex layouts with independent navigation states.
+
+## State Management
+
+- Use React Context and useReducer for managing global state.
+- Always define explicit types for state, unless using simple initializers with clear inference.
+- Utilize React Query (@tanstack/react-query) for data fetching and caching.
+- Consider Zustand for more complex state management needs.
+- Use URL search parameters for shareable and bookmarkable state.
+- Leverage server actions for form submissions and data mutations.
+- Implement optimistic updates for a better user experience.
+
+## Database Management
+
+**⚠️ IMPORTANT: Schema files are READ-ONLY. Never edit `packages/schema/` files directly.**
+
+- Follow the three-layer architecture pattern:
+  1. **Schema Layer** (`packages/schema/src/schema.ts`): ⚠️ READ-ONLY - Tell user to edit manually
+  2. **Query Layer** (`apps/web/src/db/queries/*.ts`): Implement pure database operations that:
+     - Do not handle errors (let them bubble up)
+     - Return direct database types
+     - Create and export Zod schemas using `createInsertSchema` and `createUpdateSchema`
+     - Use explicit type exports at the top of files
+  3. **Actions Layer** (`apps/web/src/lib/actions/*.ts`): Implement server actions that:
+     - Handle error management using try/catch with `createErrorResponse`
+     - Implement validation using Zod schemas
+     - Process form data with `parseFormData` utility
+     - Return consistent `QueryResponse<T>` type
+- Use Drizzle ORM with PostgreSQL for type-safe database operations
+- Create migration scripts for schema changes
+- Implement proper indexing for frequently queried columns
+- Use transactions for operations that require multiple related changes
+
+## Error Handling and Validation
+
+- Use Zod for runtime validation and error handling.
+- Implement proper error logging using a service like Sentry.
+- Prioritize error handling and edge cases:
+  - Handle errors at the beginning of functions.
+  - Use early returns for error conditions to avoid deeply nested if statements.
+  - Avoid unnecessary else statements; use if-return pattern instead.
+  - Implement error boundaries to catch and handle unexpected errors.
+- Create consistent error response formats for API routes.
+- Add descriptive error messages for better debugging.
+
+## Security
+
+- Sanitize user inputs to prevent XSS attacks.
+- Use Next.js middleware for authentication and authorization checks.
+- Implement CSRF protection for form submissions.
+- Ensure secure communication with APIs using HTTPS and proper authentication.
+- Store sensitive configuration in environment variables.
+- Implement proper rate limiting for API routes.
+
+## Testing
+
+- Write unit tests for ALL utility functions.
+- Write tests for complex React components, focusing on user interactions and business logic.
+- Implement integration tests for critical user flows.
+- Use MSW (Mock Service Worker) for API mocking.
+- Implement E2E tests with Playwright or Cypress.
+- Create test utilities for common testing patterns.
+- Set up CI/CD pipeline for automated testing.
+
+## 🗣 Communication Standards
+
+- ✅ Keep responses concise and meaningful
+- ✅ Avoid mentioning internal tools (describe actions naturally)
+- ✅ Provide clear explanations of what was implemented
+- ✅ Don't mention "apply model" or internal AI processes
+
+## 📦 Monorepo Structure
+
+```
+DataBridge/
+├── apps/
+│   ├── web/                    # Next.js application
+│   └── migration-worker/       # Background worker service
+├── packages/
+│   └── schema/                 # Shared database schema (READ-ONLY)
+├── docs/                       # Documentation
+├── scripts/                    # Utility scripts
+└── package.json               # Root workspace config
+```
+
+## 🛠 Development Commands
+
+```bash
+# Install dependencies
+yarn
+
+# Development
+yarn dev                    # Start web app
+yarn dev:worker            # Start migration worker
+yarn dev:all               # Start both
+
+# Build
+yarn build                 # Build all applications
+yarn build:web            # Build web app only
+yarn build:worker         # Build worker only
+
+# Database
+yarn db:generate          # Generate Drizzle migrations
+yarn db:deploy            # Deploy migrations
+yarn db:studio            # Open Drizzle Studio
+yarn db:seed              # Seed database
+
+# Linting
+yarn lint                 # Lint all applications
+yarn lint:fix:all        # Fix linting issues
+
+# Testing
+yarn test                 # Run all tests
+yarn test:unit           # Run unit tests
+yarn test:integration    # Run integration tests
+yarn test:e2e            # Run E2E tests
+```
+
+## 🔄 Git Workflow
+
+Follow the git workflow from `docs/GIT_WORKFLOW.md`:
+
+- Feature branches: `feature/<pbi-id>-<name>`
+- Sub-feature branches: `<firstname>.<lastname>/<sub-feature>`
+- Bug fixes: `<firstname>.<lastname>/bug-<description>`
+- Squash merge: sub-feature → feature
+- Fast-forward merge: feature → dev → main
+
+## 📚 Key Documentation Files
+
+- `docs/SETUP.md` - Installation and setup
+- `docs/ARCHITECTURE.md` - System architecture
+- `docs/CONTRIBUTING.md` - Contribution guidelines
+- `docs/ERROR_HANDLING.md` - Error handling patterns
+- `docs/GIT_WORKFLOW.md` - Git branching strategy
+- `docs/MAPPING_GUIDE.md` - Visual mapping guide
+
+## 🎨 Integrove Brand Colors
+
+Primary (Cyan): #06B6D4 (HSL: 188.74 94.5% 42.8%)
+Secondary (Teal): #32DBBC (HSL: 168.99 70.12% 52.75%)
+
+Use these colors consistently throughout the application. Avoid purple gradients or typical AI design patterns.
+

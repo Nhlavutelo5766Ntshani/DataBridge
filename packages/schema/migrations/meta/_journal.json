@@ -1,0 +1,20 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1762169275634,
+      "tag": "0000_skinny_celestials",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1762235802709,
+      "tag": "0001_light_mauler",
+      "breakpoints": true
+    }
+  ]
+}

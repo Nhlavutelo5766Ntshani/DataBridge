@@ -1,0 +1,44 @@
+{
+  "name": "databridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Visual Data Migration and Mapping Platform for Integrove",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "yarn workspace @databridge/web dev",
+    "dev:worker": "yarn workspace @databridge/migration-worker dev",
+    "dev:all": "concurrently \"yarn dev\" \"yarn dev:worker\"",
+    "build": "yarn workspaces foreach -A run build",
+    "build:web": "yarn workspace @databridge/web build",
+    "build:worker": "yarn workspace @databridge/migration-worker build",
+    "db:generate": "yarn workspace @databridge/schema db:generate",
+    "db:migrate": "yarn workspace @databridge/schema db:migrate",
+    "db:deploy": "yarn workspace @databridge/schema db:deploy",
+    "db:studio": "yarn workspace @databridge/schema db:studio",
+    "db:seed": "yarn workspace @databridge/schema db:seed",
+    "db:reset-seed": "yarn workspace @databridge/schema db:reset-seed",
+    "lint": "yarn workspaces foreach -A run lint",
+    "lint:fix:all": "yarn workspaces foreach -A run lint:fix",
+    "test": "yarn workspaces foreach -A run test",
+    "test:unit": "yarn workspaces foreach -A run test:unit",
+    "test:integration": "yarn workspaces foreach -A run test:integration",
+    "test:e2e": "yarn workspace @databridge/web test:e2e",
+    "typecheck": "yarn workspaces foreach -A run typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "yarn@4.9.1",
+  "engines": {
+    "node": ">=21.0.0",
+    "yarn": ">=4.0.0"
+  },
+  "dependencies": {
+    "sonner": "^2.0.7"
+  }
+}

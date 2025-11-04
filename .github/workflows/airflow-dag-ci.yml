@@ -1,0 +1,215 @@
+name: Airflow DAG CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'airflow/dags/**'
+      - '.github/workflows/airflow-dag-ci.yml'
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'airflow/dags/**'
+
+env:
+  PYTHON_VERSION: '3.11'
+  AIRFLOW_VERSION: '2.8.0'
+
+jobs:
+  validate-dags:
+    name: Validate Airflow DAGs
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install apache-airflow==${{ env.AIRFLOW_VERSION }}
+          pip install apache-airflow-providers-http==4.7.0
+          pip install pytest pytest-cov pylint black isort mypy
+
+      - name: Check code formatting with Black
+        run: |
+          black --check airflow/dags/
+
+      - name: Check import sorting with isort
+        run: |
+          isort --check-only airflow/dags/
+
+      - name: Lint DAGs with pylint
+        run: |
+          pylint airflow/dags/ --disable=C0114,C0115,C0116 --max-line-length=120
+
+      - name: Type check with mypy
+        run: |
+          mypy airflow/dags/ --ignore-missing-imports
+
+      - name: Validate DAG syntax
+        run: |
+          python -c "
+          import os
+          import sys
+          from airflow.models import DagBag
+
+          dag_bag = DagBag(dag_folder='airflow/dags', include_examples=False)
+          
+          if dag_bag.import_errors:
+              print('DAG Import Errors:')
+              for filename, error in dag_bag.import_errors.items():
+                  print(f'{filename}: {error}')
+              sys.exit(1)
+          
+          if not dag_bag.dags:
+              print('No DAGs found!')
+              sys.exit(1)
+          
+          print(f'✅ Successfully validated {len(dag_bag.dags)} DAG(s)')
+          for dag_id, dag in dag_bag.dags.items():
+              print(f'  - {dag_id}: {len(dag.tasks)} tasks')
+          "
+
+      - name: Test DAG structure
+        run: |
+          python -c "
+          from airflow.models import DagBag
+          import sys
+
+          dag_bag = DagBag(dag_folder='airflow/dags', include_examples=False)
+          
+          for dag_id, dag in dag_bag.dags.items():
+              # Check for cycles
+              if dag.test_cycle():
+                  print(f'❌ Cycle detected in DAG: {dag_id}')
+                  sys.exit(1)
+              
+              # Check for orphaned tasks
+              if not dag.task_dict:
+                  print(f'❌ No tasks found in DAG: {dag_id}')
+                  sys.exit(1)
+              
+              print(f'✅ DAG structure valid: {dag_id}')
+          "
+
+      - name: Run DAG tests (if they exist)
+        run: |
+          if [ -d "airflow/tests" ]; then
+            pytest airflow/tests/ -v --cov=airflow/dags --cov-report=term-missing
+          else
+            echo "No tests found, skipping"
+          fi
+
+  deploy-to-dev:
+    name: Deploy to Development
+    needs: validate-dags
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: development
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy DAGs to Development (Git-based)
+        run: |
+          echo "✅ DAGs validated and merged to 'dev' branch"
+          echo "Airflow will pull DAGs from this branch automatically"
+          echo ""
+          echo "If you're using manual deployment, copy DAGs to your Airflow server:"
+          echo "  scp -r airflow/dags/* user@dev-airflow-host:/path/to/airflow/dags/"
+
+      - name: Trigger Airflow DAG refresh (Optional)
+        if: vars.DEV_AIRFLOW_API_URL != ''
+        run: |
+          curl -X POST "${{ vars.DEV_AIRFLOW_API_URL }}/api/v1/dags/~" \
+            -H "Authorization: Bearer ${{ secrets.DEV_AIRFLOW_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            || echo "Could not trigger DAG refresh - Airflow will pick up changes automatically"
+
+      - name: Send Slack notification (Optional)
+        if: vars.SLACK_WEBHOOK_URL != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'DAG deployment to Development: ${{ job.status }}'
+          webhook_url: ${{ vars.SLACK_WEBHOOK_URL }}
+
+  deploy-to-prod:
+    name: Deploy to Production
+    needs: validate-dags
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy DAGs to Production (Git-based)
+        run: |
+          echo "✅ DAGs validated and merged to 'main' branch"
+          echo "Airflow will pull DAGs from this branch automatically"
+          echo ""
+          echo "Deployment completed at: $(date)"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+
+      - name: Trigger Airflow DAG refresh (Optional)
+        if: vars.PROD_AIRFLOW_API_URL != ''
+        run: |
+          curl -X POST "${{ vars.PROD_AIRFLOW_API_URL }}/api/v1/dags/~" \
+            -H "Authorization: Bearer ${{ secrets.PROD_AIRFLOW_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            || echo "Could not trigger DAG refresh - Airflow will pick up changes automatically"
+
+      - name: Verify deployment (Optional)
+        if: vars.PROD_AIRFLOW_API_URL != ''
+        run: |
+          echo "Waiting for DAGs to load..."
+          sleep 30
+          
+          curl -f "${{ vars.PROD_AIRFLOW_API_URL }}/api/v1/dags" \
+            -H "Authorization: Bearer ${{ secrets.PROD_AIRFLOW_API_KEY }}" \
+            && echo "✅ DAGs accessible via API" \
+            || echo "⚠️ Could not verify via API, but DAGs should load automatically"
+
+      - name: Send Slack notification (Optional)
+        if: vars.SLACK_WEBHOOK_URL != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'DAG deployment to Production: ${{ job.status }}'
+          webhook_url: ${{ vars.SLACK_WEBHOOK_URL }}
+
+      - name: Create GitHub Release
+        if: success()
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: airflow-dags-${{ github.run_number }}
+          release_name: Airflow DAGs - Build ${{ github.run_number }}
+          body: |
+            🚀 Deployed Airflow DAGs to production
+            
+            **Commit**: ${{ github.sha }}
+            **Author**: ${{ github.actor }}
+            **Date**: ${{ github.event.head_commit.timestamp }}
+            **Branch**: ${{ github.ref }}
+            
+            ### Changes
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false
