@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { fetchProject } from "@/lib/actions/projects";
-import { fetchProjectPipelines } from "@/lib/actions/pipelines";
+import { fetchProjectPipelines, fetchProjectSchedule } from "@/lib/actions/pipelines";
 import { fetchUserConnections } from "@/lib/actions/connections";
 import { PipelineList } from "@/components/pipelines/pipeline-list";
 import { AddPipelineButton } from "@/components/pipelines/add-pipeline-button";
 import { GenerateDAGButton } from "@/components/pipelines/generate-dag-button";
+import { ScheduleCardWrapper } from "@/components/pipelines/schedule-card-wrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,13 +27,15 @@ const PipelinePage = async ({ params }: PipelinePageProps) => {
 
   const project = projectResult.data;
   
-  const [pipelinesResult, connectionsResult] = await Promise.all([
+  const [pipelinesResult, connectionsResult, scheduleResult] = await Promise.all([
     fetchProjectPipelines(id),
     fetchUserConnections(TEMP_USER_ID),
+    fetchProjectSchedule(id),
   ]);
 
   const pipelines = pipelinesResult.success && pipelinesResult.data ? pipelinesResult.data : [];
   const connections = connectionsResult.success && connectionsResult.data ? connectionsResult.data : [];
+  const schedule = scheduleResult.success && scheduleResult.data ? scheduleResult.data : null;
 
   return (
     <div className="space-y-6">
@@ -75,6 +78,13 @@ const PipelinePage = async ({ params }: PipelinePageProps) => {
             </CardDescription>
           </CardHeader>
         </Card>
+      )}
+
+      {project.strategy === "multi-pipeline" && (
+        <ScheduleCardWrapper 
+          schedule={schedule} 
+          projectId={project.id}
+        />
       )}
 
       {project.strategy === "multi-pipeline" && pipelines.length === 0 && (

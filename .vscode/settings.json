@@ -1,0 +1,19 @@
+{
+  "yaml.customTags": [
+    "!reference sequence"
+  ],
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml"
+  },
+  "yaml.validate": true,
+  "yaml.completion": true,
+  "github-actions.workflows.pinned.workflows": [
+    ".github/workflows/app-ci-cd.yml",
+    ".github/workflows/airflow-dag-ci.yml"
+  ],
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  }
+}
+

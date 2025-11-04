@@ -1,0 +1,161 @@
+name: DataBridge App CI/CD
+
+# Note: Linter warnings about optional secrets/variables (VERCEL_TOKEN, DATABASE_URL, etc.)
+# are expected and safe to ignore until you configure them in:
+# GitHub Settings → Secrets and variables → Actions
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'yarn.lock'
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  NODE_VERSION: '20'
+  YARN_VERSION: '4.9.1'
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Build schema package
+        run: yarn workspace @databridge/schema build
+
+      - name: Lint code
+        run: yarn lint
+
+      - name: Type check
+        run: yarn workspace @databridge/web tsc --noEmit
+
+      - name: Build web app
+        run: yarn workspace @databridge/web build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder' }}
+          SKIP_ENV_VALIDATION: true
+
+  deploy-dev:
+    name: Deploy to Development
+    needs: build-and-test
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: development
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel (Development)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./apps/web
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+
+      - name: Wait for deployment to be ready
+        run: |
+          echo "Waiting for deployment to be accessible..."
+          sleep 30
+
+      - name: Health check
+        run: |
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.DEV_APP_URL }}/api/health || echo "000")
+          if [ "$RESPONSE" = "200" ]; then
+            echo "✅ Development deployment is healthy"
+          else
+            echo "⚠️ Health check returned status: $RESPONSE"
+            exit 1
+          fi
+
+      - name: Deployment summary
+        run: |
+          echo "🚀 Deployment completed successfully!"
+          echo "Environment: Development"
+          echo "URL: ${{ secrets.DEV_APP_URL }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+
+  deploy-prod:
+    name: Deploy to Production
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel (Production)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./apps/web
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+
+      - name: Wait for deployment to be ready
+        run: |
+          echo "Waiting for deployment to be accessible..."
+          sleep 30
+
+      - name: Health check
+        run: |
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.PROD_APP_URL }}/api/health || echo "000")
+          if [ "$RESPONSE" = "200" ]; then
+            echo "✅ Production deployment is healthy"
+          else
+            echo "⚠️ Health check returned status: $RESPONSE"
+            exit 1
+          fi
+
+      - name: Create deployment tag
+        run: |
+          TAG="release-$(date +%Y%m%d-%H%M%S)"
+          git tag $TAG
+          echo "Created tag: $TAG"
+
+      - name: Deployment summary
+        run: |
+          echo "🚀 Deployment completed successfully!"
+          echo "Environment: Production"
+          echo "URL: ${{ secrets.PROD_APP_URL }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+
