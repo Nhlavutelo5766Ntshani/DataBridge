@@ -35,69 +35,73 @@ export const WizardLayout = ({
   totalSteps,
   steps,
   children,
-  onBack,
-  onCancel,
-  onContinue,
-  canContinue = true,
-  isLastStep = false,
 }: WizardLayoutProps) => {
   const progressPercentage = Math.round((currentStep / totalSteps) * 100);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href={`/projects/${projectId}`}>
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Project
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900">{projectName}</h1>
-            <p className="text-sm text-gray-600">Visual data mapping and migration</p>
+    <div className="h-full flex flex-col bg-gray-100">
+      {/* PART 1: Top Header - Ultra Compact */}
+      <div className="bg-white shadow-sm px-6 py-3 flex-shrink-0">
+        <div className="flex items-center justify-between max-w-[1600px] mx-auto">
+          {/* Left: Back button + Title */}
+          <div className="flex items-center gap-3">
+            <Link href={`/projects/${projectId}`}>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">{projectName}</h1>
+              <p className="text-xs text-gray-500">Visual data mapping and migration</p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600">Migration Progress</span>
-          <div className="relative w-24 h-24">
-            <svg className="transform -rotate-90 w-24 h-24">
-              <circle
-                cx="48"
-                cy="48"
-                r="40"
-                stroke="currentColor"
-                strokeWidth="8"
-                fill="transparent"
-                className="text-gray-200"
-              />
-              <circle
-                cx="48"
-                cy="48"
-                r="40"
-                stroke="currentColor"
-                strokeWidth="8"
-                fill="transparent"
-                strokeDasharray={2 * Math.PI * 40}
-                strokeDashoffset={2 * Math.PI * 40 * (1 - progressPercentage / 100)}
-                className="text-[#06B6D4] transition-all duration-500"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-lg font-bold text-[#06B6D4]">{progressPercentage}%</span>
+
+          {/* Right: Progress indicator - Smaller */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-600">Migration Progress</span>
+            <div className="relative w-12 h-12">
+              <svg className="transform -rotate-90 w-12 h-12">
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="20"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="transparent"
+                  className="text-gray-200"
+                />
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="20"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="transparent"
+                  strokeDasharray={2 * Math.PI * 20}
+                  strokeDashoffset={2 * Math.PI * 20 * (1 - progressPercentage / 100)}
+                  className="text-[#06B6D4] transition-all duration-500"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-sm font-bold text-[#06B6D4]">{progressPercentage}%</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        <aside className="w-80 bg-white border-r p-6 overflow-y-auto">
-          <div className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-900 mb-1">Migration Steps</h2>
-            <p className="text-xs text-gray-600">Click on any step to navigate and edit</p>
-          </div>
+      {/* WHITE SPACE GAP between header and content */}
+      <div className="p-4 flex flex-1 overflow-hidden">
+        <div className="flex gap-4 flex-1 max-w-[1600px] mx-auto w-full">
+          {/* PART 2: Left Sidebar - Migration Steps (White panel with border) */}
+          <aside className="w-80 bg-white rounded-lg shadow-sm border border-gray-200 flex-shrink-0 overflow-y-auto">
+            <div className="p-6 border-b bg-gray-50">
+              <h2 className="text-base font-semibold text-gray-900 mb-1">Migration Steps</h2>
+              <p className="text-xs text-gray-600">Click on any step to navigate and edit</p>
+            </div>
 
-          <nav className="space-y-2">
+            <nav className="p-4 space-y-2">
             {steps.map((step, index) => {
               const stepNumber = index + 1;
               const isCompleted = step.status === "completed";
@@ -108,8 +112,8 @@ export const WizardLayout = ({
                 <div
                   key={step.id}
                   className={cn(
-                    "flex gap-4 p-4 rounded-lg border-2 transition-all cursor-pointer",
-                    isCurrent && "border-[#06B6D4] bg-[#06B6D4]/5",
+                    "flex gap-3 p-3 rounded-lg border-2 transition-all cursor-pointer",
+                    isCurrent && "border-[#06B6D4] bg-[#06B6D4]/5 shadow-sm",
                     isCompleted && "border-gray-200 bg-white hover:bg-gray-50",
                     isPending && "border-gray-200 bg-gray-50 opacity-60"
                   )}
@@ -119,7 +123,7 @@ export const WizardLayout = ({
                       className={cn(
                         "w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm",
                         isCompleted && "bg-[#06B6D4] text-white",
-                        isCurrent && "bg-[#06B6D4] text-white ring-4 ring-[#06B6D4]/20",
+                        isCurrent && "bg-[#06B6D4] text-white",
                         isPending && "bg-gray-200 text-gray-600"
                       )}
                     >
@@ -150,39 +154,15 @@ export const WizardLayout = ({
                 </div>
               );
             })}
-          </nav>
-        </aside>
+            </nav>
+          </aside>
 
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-5xl mx-auto">{children}</div>
-        </main>
-      </div>
-
-      <footer className="bg-white border-t px-6 py-4 flex items-center justify-between">
-        <div className="flex gap-3">
-          {onBack && (
-            <Button variant="outline" onClick={onBack}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-          )}
-          {onCancel && (
-            <Button variant="ghost" onClick={onCancel}>
-              Cancel
-            </Button>
-          )}
+          {/* PART 3: Right Content Area - Main content (White panel with border) */}
+          <main className="flex-1 flex flex-col overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200">
+            {children}
+          </main>
         </div>
-
-        {onContinue && (
-          <Button
-            onClick={onContinue}
-            disabled={!canContinue}
-            className="bg-[#06B6D4] hover:bg-[#0891b2] text-white"
-          >
-            {isLastStep ? "Execute Migration" : "Continue"}
-          </Button>
-        )}
-      </footer>
+      </div>
     </div>
   );
 };

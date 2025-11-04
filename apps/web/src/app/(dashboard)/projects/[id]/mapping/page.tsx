@@ -7,6 +7,8 @@ type PageProps = {
   params: Promise<{ id: string }>;
 };
 
+export const dynamic = "force-dynamic";
+
 const MappingWizardPage = async ({ params }: PageProps) => {
   const { id } = await params;
 
@@ -29,8 +31,8 @@ const MappingWizardPage = async ({ params }: PageProps) => {
 
   if (!sourceSchemaResult.success || !targetSchemaResult.success) {
     return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md">
           <p className="text-red-800">
             Failed to load database schemas. Please check your connections.
           </p>

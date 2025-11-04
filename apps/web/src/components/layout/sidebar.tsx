@@ -3,20 +3,36 @@
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Database,
   FileText,
   FolderKanban,
   GitBranch,
   LayoutDashboard,
-  Settings,
+  LogOut,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PATHS } from "@/lib/constants/paths";
 import { cn } from "@/lib/utils/cn";
+import { logoutAction } from "@/lib/actions/auth";
+
+type SidebarProps = {
+  user?: {
+    name: string;
+    email: string;
+  };
+};
 
 type NavItem = {
   title: string;
@@ -51,16 +67,15 @@ const navItems: NavItem[] = [
     href: PATHS.DASHBOARD.REPORTS,
     icon: FileText,
   },
-  {
-    title: "Settings",
-    href: PATHS.DASHBOARD.SETTINGS,
-    icon: Settings,
-  },
 ];
 
-export const Sidebar = () => {
+export const Sidebar = ({ user }: SidebarProps) => {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const handleLogout = async () => {
+    await logoutAction();
+  };
 
   return (
     <aside
@@ -76,7 +91,7 @@ export const Sidebar = () => {
             href={PATHS.DASHBOARD.HOME}
             className="flex items-center space-x-2"
           >
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
               <Database className="h-5 w-5 text-white" />
             </div>
             <span className="text-lg font-bold text-primary">DataBridge</span>
@@ -127,26 +142,56 @@ export const Sidebar = () => {
         })}
       </nav>
 
-      {/* User Section - Authentication pending */}
+      {/* User & Logout Section with Dropdown */}
       <div className="border-t p-4">
-        <Link href={PATHS.DASHBOARD.SETTINGS}>
-          <div
+        {user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "flex items-center gap-2 hover:bg-accent rounded-lg p-2 transition-colors cursor-pointer w-full text-left",
+                  isCollapsed && "justify-center"
+                )}
+              >
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <User className="h-4 w-4 text-primary" />
+                </div>
+                {!isCollapsed && (
+                  <>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                  </>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top" className="w-56 mb-2">
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <button
+            onClick={handleLogout}
             className={cn(
-              "flex items-center space-x-3 hover:bg-accent rounded-lg p-2 transition-colors cursor-pointer",
+              "flex items-center space-x-3 hover:bg-destructive/10 rounded-lg p-2 transition-colors cursor-pointer w-full text-left",
               isCollapsed && "justify-center"
             )}
           >
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-sm font-medium">
-              <Settings className="h-4 w-4" />
+            <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
+              <LogOut className="h-4 w-4 text-destructive" />
             </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">Account</p>
-                <p className="text-xs text-muted-foreground">View settings</p>
+                <p className="text-sm font-medium text-destructive">Log out</p>
               </div>
             )}
-          </div>
-        </Link>
+          </button>
+        )}
       </div>
     </aside>
   );

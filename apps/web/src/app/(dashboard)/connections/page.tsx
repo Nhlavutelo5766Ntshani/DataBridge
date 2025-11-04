@@ -20,8 +20,9 @@ const ConnectionsPage = async () => {
   
   const activeCount = connections.filter(c => c.isActive).length;
   const dbTypes = new Set(connections.map(c => c.dbType)).size;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 p-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
@@ -32,7 +33,7 @@ const ConnectionsPage = async () => {
           </p>
         </div>
         <Link href={PATHS.DASHBOARD.CONNECTIONS_NEW}>
-          <Button className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+          <Button className="bg-[#06B6D4] hover:bg-[#0891b2] text-white">
             <Plus className="h-4 w-4 mr-2" />
             New Connection
           </Button>
@@ -100,7 +101,7 @@ const ConnectionsPage = async () => {
                 supported databases.
               </p>
               <Link href={PATHS.DASHBOARD.CONNECTIONS_NEW}>
-                <Button className="bg-gradient-to-r from-primary to-secondary">
+                <Button className="bg-[#06B6D4] hover:bg-[#0891b2] text-white">
                   <Plus className="h-4 w-4 mr-2" />
                   Create Connection
                 </Button>
