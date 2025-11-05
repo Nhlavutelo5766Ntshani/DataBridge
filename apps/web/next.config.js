@@ -10,6 +10,12 @@ const nextConfig = {
   images: {
     remotePatterns: [],
   },
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
+  typescript: {
+    ignoreBuildErrors: false,
+  },
   output: 'standalone',
 };
 

@@ -73,8 +73,8 @@ const NewConnectionPage = () => {
     if (result.success) {
       toast.success(result.data?.message || "Connection test successful!");
     } else {
-      const errorMessage = Array.isArray(result.error) 
-        ? result.error.join(", ") 
+      const errorMessage = Array.isArray(result.error)
+        ? result.error.join(", ")
         : result.error || "Connection test failed";
       toast.error(errorMessage);
       setError(errorMessage);
@@ -123,10 +123,10 @@ const NewConnectionPage = () => {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-xl font-semibold text-gray-900">
             New Database Connection
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-gray-600 mt-1">
             Add a new source or target database connection
           </p>
         </div>
@@ -156,7 +156,9 @@ const NewConnectionPage = () => {
                 <Label htmlFor="connectionType">Connection Type *</Label>
                 <Select
                   value={formData.connectionType}
-                  onValueChange={(value) => handleChange("connectionType", value)}
+                  onValueChange={(value) =>
+                    handleChange("connectionType", value)
+                  }
                   disabled={isLoading}
                 >
                   <SelectTrigger>
@@ -320,7 +322,7 @@ const NewConnectionPage = () => {
                 </Link>
                 <Button
                   type="submit"
-                  className="bg-gradient-to-r from-primary to-secondary"
+                  className="bg-primary hover:bg-primary/90 text-white"
                   disabled={isLoading}
                 >
                   {isLoading ? "Creating..." : "Create Connection"}
@@ -335,4 +337,3 @@ const NewConnectionPage = () => {
 };
 
 export default NewConnectionPage;
-

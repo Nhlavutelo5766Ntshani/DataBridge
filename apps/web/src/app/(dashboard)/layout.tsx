@@ -26,7 +26,7 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
       />
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto bg-background">
+        <main className="flex-1 overflow-hidden bg-background p-6">
           {children}
         </main>
       </div>
@@ -35,4 +35,3 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
 };
 
 export default DashboardLayout;
-
