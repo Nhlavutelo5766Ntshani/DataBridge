@@ -17,14 +17,14 @@ import { fetchUserConnections } from "@/lib/actions/connections";
 import { TEMP_USER_ID } from "@/lib/constants/temp-data";
 
 type Connection = {
-  id: number;
+  id: string;
   name: string;
   type: string;
   dbType: string;
   host: string;
   port: number;
   database: string;
-  isActive: boolean;
+  isActive: boolean | null;
 };
 
 export const ConnectionsList = (): JSX.Element => {

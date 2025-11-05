@@ -3,14 +3,14 @@
 import { createContext, ReactNode, useContext, useState } from "react";
 
 type Connection = {
-  id: number;
+  id: string;
   name: string;
   type: string;
   dbType: string;
   host: string;
   port: number;
   database: string;
-  isActive: boolean;
+  isActive: boolean | null;
 };
 
 type DrawerMode = "create" | "details" | "edit";

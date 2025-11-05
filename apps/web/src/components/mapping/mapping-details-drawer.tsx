@@ -43,10 +43,6 @@ export const MappingDetailsDrawer = ({
   if (!mapping) return null;
 
   const totalSourceColumns = sourceSchema?.columns.length || 0;
-  const totalTargetColumns = targetSchemas.reduce(
-    (sum, schema) => sum + schema.columns.length,
-    0
-  );
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -133,7 +129,7 @@ export const MappingDetailsDrawer = ({
                   <CardDescription>{mapping.sourceTable}</CardDescription>
                 </div>
                 <Badge variant="outline" className="bg-primary/10 text-primary">
-                  {sourceSchema?.dbType || "Unknown"}
+                  Source
                 </Badge>
               </div>
             </CardHeader>
@@ -175,7 +171,7 @@ export const MappingDetailsDrawer = ({
                           {col.name}
                         </span>
                         <Badge variant="outline" className="text-xs">
-                          {col.type}
+                          {col.dataType}
                         </Badge>
                       </div>
                     ))}
@@ -211,7 +207,7 @@ export const MappingDetailsDrawer = ({
                       variant="outline"
                       className="bg-secondary/10 text-secondary"
                     >
-                      {targetSchema.dbType || "Unknown"}
+                      Target
                     </Badge>
                   </div>
                 </CardHeader>
@@ -255,7 +251,7 @@ export const MappingDetailsDrawer = ({
                                 {col.name}
                               </span>
                               <Badge variant="outline" className="text-xs">
-                                {col.type}
+                                {col.dataType}
                               </Badge>
                             </div>
                           ))}
