@@ -45,6 +45,11 @@ function getSessionOptions() {
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
+  // Skip session checks for API routes (already handled by matcher, but double-check)
+  if (path.startsWith('/api')) {
+    return NextResponse.next();
+  }
+
   const isPublicPath = publicPaths.includes(path);
   const isAuthPath = authPaths.includes(path);
 
