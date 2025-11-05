@@ -43,7 +43,6 @@ async function processETLJob(job: Job<ETLJobData>) {
     stage,
   });
 
-  // Update job progress
   await job.updateProgress(10);
 
   try {
@@ -167,7 +166,6 @@ export function initializeWorker(): void {
     limiter: etlWorker.opts.limiter,
   });
 
-  // Handle process termination
   process.on("SIGTERM", async () => {
     await shutdownWorker();
     process.exit(0);

@@ -12,7 +12,6 @@ function getRedisConnection() {
     throw new Error("REDIS_URL environment variable is required for BullMQ");
   }
 
-  // Parse Redis URL
   const url = new URL(redisUrl);
 
   return {
