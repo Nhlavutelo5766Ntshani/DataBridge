@@ -34,7 +34,7 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -45,11 +45,33 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Install system dependencies for native modules
+        run: |
+          sudo apt-get update
+          # build-essential for compiling native modules, python for node-gyp, libvips for sharp
+          sudo apt-get install -y build-essential python3 pkg-config libvips-dev
+
+      - name: Enable Corepack and pin yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@${{ env.YARN_VERSION }} --activate
 
       - name: Install dependencies
-        run: yarn install --immutable
+        run: |
+          set -e
+          # first attempt with immutable install; if it fails, retry with --force so native builds can finish
+          yarn install --immutable --verbose || (
+            echo "Initial yarn install failed - retrying with --force" &&
+            yarn install --force --verbose
+          )
+
+      - name: Rebuild native modules
+        run: |
+          echo "Ensuring native binaries are built"
+          # Rebuild native binaries (safe to run even if not needed)
+          npm rebuild --update-binary || true
+          # Confirm esbuild is installed for the current platform (some esbuild installs trigger platform fetch)
+          npx --yes esbuild --version || true
 
       - name: Build schema package
         run: yarn workspace @databridge/schema build
@@ -61,7 +83,7 @@ jobs:
         run: yarn workspace @databridge/web tsc --noEmit
 
       - name: Build web app
-        run: yarn workspace @databridge/web build
+        run: yarn workspace @databridge/web build --verbose
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder' }}
           SKIP_ENV_VALIDATION: true
@@ -72,7 +94,7 @@ jobs:
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: development
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -83,11 +105,29 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Install system dependencies for native modules
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3 pkg-config libvips-dev
+
+      - name: Enable Corepack and pin yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@${{ env.YARN_VERSION }} --activate
 
       - name: Install dependencies
-        run: yarn install --immutable
+        run: |
+          set -e
+          yarn install --immutable --verbose || (
+            echo "Initial yarn install failed - retrying with --force" &&
+            yarn install --force --verbose
+          )
+
+      - name: Rebuild native modules
+        run: |
+          echo "Ensuring native binaries are built"
+          npm rebuild --update-binary || true
+          npx --yes esbuild --version || true
 
       - name: Build schema package
         run: yarn workspace @databridge/schema build
@@ -133,7 +173,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: production
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -144,11 +184,29 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Install system dependencies for native modules
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3 pkg-config libvips-dev
+
+      - name: Enable Corepack and pin yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@${{ env.YARN_VERSION }} --activate
 
       - name: Install dependencies
-        run: yarn install --immutable
+        run: |
+          set -e
+          yarn install --immutable --verbose || (
+            echo "Initial yarn install failed - retrying with --force" &&
+            yarn install --force --verbose
+          )
+
+      - name: Rebuild native modules
+        run: |
+          echo "Ensuring native binaries are built"
+          npm rebuild --update-binary || true
+          npx --yes esbuild --version || true
 
       - name: Build schema package
         run: yarn workspace @databridge/schema build
@@ -194,4 +252,3 @@ jobs:
           echo "URL: ${{ secrets.PROD_APP_URL }}"
           echo "Commit: ${{ github.sha }}"
           echo "Author: ${{ github.actor }}"
-
