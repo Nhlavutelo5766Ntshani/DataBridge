@@ -1,12 +1,12 @@
-# 🚀 Enhanced Migration Wizard with Airflow Integration
+# 🚀 Enhanced Migration Wizard with Node.js ETL
 
 ## Overview
 
-The DataBridge migration wizard has been enhanced with full Airflow orchestration capabilities, providing production-ready ETL pipeline management with comprehensive monitoring and control.
+The DataBridge migration wizard provides a production-ready ETL pipeline implementation using Node.js, BullMQ task queues, and Vercel Cron scheduling for comprehensive migration management and monitoring.
 
 ---
 
-## 🎯 Complete 7-Step Migration Flow
+## 🎯 Complete 6-Step Migration Flow
 
 ### **Step 1: Select Tables** ✅
 **File**: `apps/web/src/components/mapping/wizard/step1-table-selection.tsx`
@@ -121,35 +121,8 @@ The DataBridge migration wizard has been enhanced with full Airflow orchestratio
 
 ---
 
-### **Step 6: Review & Deploy** 🆕
-**File**: `apps/web/src/components/mapping/wizard/step6-review-deploy.tsx`
-
-**Configuration Summary:**
-- Project name
-- Table mappings count
-- Column mappings count
-- Transformations count
-- Schedule status (enabled/disabled)
-- Cron expression
-
-**Deployment Progress:**
-Real-time deployment status with 5 stages:
-1. ✅ Generate Airflow DAG
-2. ✅ Validate DAG syntax
-3. ✅ Commit to GitHub repository
-4. ✅ Trigger CI/CD workflow
-5. ✅ Deploy to Airflow
-
-**Success Links:**
-- Direct link to Airflow DAG
-- GitHub commit URL
-- CI/CD workflow status
-- Retry on failure
-
----
-
-### **Step 7: Execute & Monitor** 🆕
-**File**: `apps/web/src/components/mapping/wizard/step7-execution-monitor.tsx`
+### **Step 6: Execute & Monitor** 🆕
+**File**: `apps/web/src/components/mapping/wizard/step6-execution-monitor.tsx`
 
 **Real-Time Monitoring:**
 - Live progress bar
@@ -157,12 +130,11 @@ Real-time deployment status with 5 stages:
 - Failed records count
 - Success rate percentage
 
-**Airflow Integration:**
-- Link to Airflow UI for detailed logs
-- Task-level status tracking:
-  - Queued
+**ETL Pipeline Integration:**
+- Real-time task status tracking:
+  - Pending
   - Running
-  - Success
+  - Completed
   - Failed
   - Skipped
 - Task duration and timestamps
@@ -184,58 +156,57 @@ Real-time deployment status with 5 stages:
 ## 🔧 Server Actions & API Routes
 
 ### **Server Actions**
-**File**: `apps/web/src/lib/actions/pipeline-deployment.ts`
+**File**: `apps/web/src/lib/actions/migration-execution.ts`
 
 ```typescript
-// Deploy project to Airflow
-deployProjectToAirflow(projectId: string)
+// Start migration execution
+startMigrationExecution(projectId: string)
 
-// Get deployment status
-getDeploymentStatus(projectId: string)
+// Get execution status
+getExecutionStatus(executionId: string)
 
 // Execution control
-pausePipelineExecution(dagId: string, dagRunId: string)
-resumePipelineExecution(dagId: string, dagRunId: string)
-retryPipelineExecution(dagId: string, dagRunId: string)
+pauseMigrationExecution(executionId: string)
+resumeMigrationExecution(executionId: string)
+retryMigrationExecution(executionId: string)
 
 // Monitoring
-getAirflowTaskStatus(dagId: string, dagRunId: string)
+getETLStageStatus(executionId: string)
 ```
 
 ### **API Routes**
 
-#### `POST /api/airflow/trigger-dag`
-Trigger a new Airflow DAG run
+#### `POST /api/executions/start`
+Start a new migration execution
 ```json
 {
-  "dagId": "project_123_dag",
-  "conf": { "custom": "config" }
+  "projectId": "project_123"
 }
 ```
 
-#### `GET /api/airflow/dag-status?dagId=X&dagRunId=Y`
-Get DAG run status
+#### `GET /api/executions/[id]/status`
+Get execution status
 ```json
 {
   "success": true,
   "data": {
-    "dagId": "project_123_dag",
-    "state": "running",
-    "startDate": "2025-01-01T00:00:00Z"
+    "executionId": "exec_123",
+    "status": "running",
+    "startTime": "2025-01-01T00:00:00Z"
   }
 }
 ```
 
-#### `GET /api/airflow/task-instances?dagId=X&dagRunId=Y`
-Get all task instances for a DAG run
+#### `GET /api/executions/[id]/stages`
+Get all ETL stage statuses
 ```json
 {
   "success": true,
   "data": {
-    "tasks": [
+    "stages": [
       {
-        "taskId": "extract_data",
-        "status": "success",
+        "stageId": "extract",
+        "status": "completed",
         "duration": 45.2
       }
     ]
@@ -267,33 +238,28 @@ Following PulseSense design pattern:
 ```
 User completes wizard steps
   ↓
-Generate Airflow DAG with:
-  - Schedule configuration
+Configure ETL pipeline with:
+  - Schedule configuration (Vercel Cron)
   - Retry logic
   - SLA monitoring
   - Dependencies
   ↓
-Commit DAG to GitHub
-  ↓
-GitHub Actions validates and deploys
-  ↓
-Airflow picks up new DAG
-  ↓
 User triggers execution (manual or scheduled)
   ↓
-Airflow orchestrates ETL pipeline:
-  1. Extract from source
-  2. Transform data
-  3. Validate quality
-  4. Load to target
-  5. Complete
+BullMQ queues ETL tasks:
+  1. Extract to staging
+  2. Transform & cleanse
+  3. Load dimensions
+  4. Load facts
+  5. Validate data
+  6. Generate report
   ↓
 Real-time monitoring in DataBridge UI
-  - Task-level progress
+  - Stage-level progress
   - Error tracking
   - Performance metrics
   ↓
-Link to Airflow UI for detailed logs
+View detailed execution logs and reports
 ```
 
 ---
@@ -303,18 +269,22 @@ Link to Airflow UI for detailed logs
 Add these to your `.env.local`:
 
 ```bash
-# Airflow Configuration
-AIRFLOW_API_URL=http://localhost:8080/api/v1
-AIRFLOW_API_KEY=your_airflow_api_key
-NEXT_PUBLIC_AIRFLOW_URL=http://localhost:8080
+# Database
+DATABASE_URL=postgres://...
+STAGING_DATABASE_URL=postgres://...
 
-# GitHub Configuration (for DAG deployment)
-GITHUB_TOKEN=your_github_token
-GITHUB_REPO_OWNER=your_org
-GITHUB_REPO_NAME=your_repo
+# Redis (for BullMQ)
+REDIS_URL=redis://...
 
-# Deployment Configuration
-DEPLOY_ENVIRONMENT=development # or production
+# SAP Object Store
+SAP_OBJECT_STORE_URL=https://...
+SAP_OBJECT_STORE_API_KEY=...
+
+# Vercel Cron
+CRON_SECRET=... # Random secret for cron auth
+
+# Session
+SESSION_SECRET=...
 ```
 
 ---
@@ -339,16 +309,12 @@ const project = await addProject({
 - Step 6: Deploy to Airflow
 - Step 7: Monitor execution
 
-### 3. Monitor in Airflow
+### 3. Monitor Execution
 ```bash
-# Access Airflow UI
-open http://localhost:8080
-
-# View DAG
-# customer_data_migration_dag
-
-# Check task status
-# extract_data → transform_and_map → validate_data → load_to_target
+# Real-time monitoring in DataBridge UI
+# View ETL stage status
+# Check task progress
+# extract → transform → load_dimensions → load_facts → validate → report
 ```
 
 ---
@@ -383,27 +349,29 @@ open http://localhost:8080
 
 ## 🎯 Next Steps
 
-1. **Configure Airflow**:
+1. **Set up Redis**:
    ```bash
-   cd airflow
-   docker-compose up -d
+   # Local development
+   docker run -p 6379:6379 redis:latest
+   
+   # Or use managed Redis (Upstash, Redis Cloud)
    ```
 
-2. **Set up GitHub Actions**:
-   - Configure secrets in GitHub repository
-   - Add Airflow deployment workflow
+2. **Configure Vercel Cron**:
+   - Add cron routes to `vercel.json`
+   - Set CRON_SECRET in Vercel environment variables
 
 3. **Test Pipeline**:
    - Create test project
    - Map test tables
-   - Deploy to Airflow
-   - Monitor execution
+   - Start execution
+   - Monitor progress
 
 4. **Production Deployment**:
-   - Configure production Airflow instance
-   - Set up monitoring alerts
-   - Enable SLA notifications
-   - Configure backfill settings
+   - Configure staging database
+   - Set up SAP Object Store integration
+   - Enable scheduled migrations
+   - Configure monitoring alerts
 
 ---
 
@@ -412,8 +380,7 @@ open http://localhost:8080
 - `docs/ARCHITECTURE.md` - System architecture
 - `docs/CONTRIBUTING.md` - Contribution guidelines
 - `docs/ERROR_HANDLING.md` - Error handling patterns
-- `airflow/README.md` - Airflow setup guide
-- `docs/GIT_SETUP.md` - Git repository configuration
+- `docs/SETUP.md` - Setup guide
 
 ---
 
@@ -421,11 +388,14 @@ open http://localhost:8080
 
 - [x] Step 3: Pipeline Configuration
 - [x] Step 4: Schedule & Dependencies
-- [x] Step 5: Preview & Validate (with DAG visualization)
-- [x] Step 6: Review & Deploy
-- [x] Step 7: Execute & Monitor (enhanced)
-- [x] Server actions for deployment
-- [x] API routes for Airflow communication
+- [x] Step 5: Preview & Validate
+- [x] Step 6: Execute & Monitor
+- [ ] 6-stage ETL pipeline implementation
+- [ ] BullMQ task queue integration
+- [ ] Vercel Cron scheduling
+- [ ] SAP Object Store integration
+- [ ] Staging database setup
+- [ ] Real-time progress monitoring (SSE)
 - [x] Updated wizard layout (PulseSense pattern)
 - [x] UI/UX improvements (fixed buttons, scrolling)
 - [x] User info in logout section
@@ -433,5 +403,5 @@ open http://localhost:8080
 
 ---
 
-**All features are production-ready and fully integrated with Airflow!** 🎉
+**Phase 1 (Cleanup) complete! Ready for Phase 2 (ETL Implementation)** 🎉
 

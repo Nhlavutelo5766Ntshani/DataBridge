@@ -10,7 +10,6 @@ import {
   Columns,
   Database,
   Eye,
-  Rocket,
   Settings,
 } from "lucide-react";
 import { useState } from "react";
@@ -19,8 +18,7 @@ import { ColumnMapping } from "./step2-column-mapping";
 import { PipelineConfig } from "./step3-pipeline-config";
 import { ScheduleDependencies } from "./step4-schedule-dependencies";
 import { PreviewValidate } from "./step5-preview-validate";
-import { ReviewDeploy } from "./step6-review-deploy";
-import { ExecutionMonitor } from "./step7-execution-monitor";
+import { ExecutionMonitor } from "./step6-execution-monitor";
 import { WizardLayout } from "./wizard-layout";
 
 type Project = {
@@ -54,7 +52,7 @@ export const MappingWizard = ({
   sourceSchema,
   targetSchema,
 }: MappingWizardProps) => {
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep] = useState(0);
   const [tableMappings, setTableMappings] = useState<
     Array<{ sourceTable: string; targetTable: string; confidence?: number }>
   >([]);
@@ -136,7 +134,7 @@ export const MappingWizard = ({
     {
       id: "preview",
       title: "Preview & Validate",
-      description: "Review data and DAG structure",
+      description: "Review data and pipeline structure",
       icon: <Eye className="w-5 h-5" />,
       status: (currentStep > 4
         ? "completed"
@@ -145,22 +143,11 @@ export const MappingWizard = ({
         : "pending") as "completed" | "current" | "pending",
     },
     {
-      id: "deploy",
-      title: "Review & Deploy",
-      description: "Deploy pipeline to Airflow",
-      icon: <Rocket className="w-5 h-5" />,
-      status: (currentStep > 5
-        ? "completed"
-        : currentStep === 5
-        ? "current"
-        : "pending") as "completed" | "current" | "pending",
-    },
-    {
       id: "execute",
       title: "Execute & Monitor",
       description: "Run and monitor migration progress",
       icon: <Activity className="w-5 h-5" />,
-      status: (currentStep === 6 ? "current" : "pending") as
+      status: (currentStep === 5 ? "current" : "pending") as
         | "completed"
         | "current"
         | "pending",
@@ -186,18 +173,9 @@ export const MappingWizard = ({
     return [];
   };
 
-  const handleDeploy = async () => {
-    // Call deployment API
-    console.log("Deploying to Airflow...");
-  };
-
-  const handleSkipDeploy = () => {
-    setCurrentStep(6);
-  };
-
   const handleStartExecution = async () => {
     // Call execution API
-    return { executionId: "test-execution-id", dagRunId: "test-dag-run" };
+    return { executionId: "test-execution-id" };
   };
 
   const handleCheckStatus = async (executionId: string) => {
@@ -211,17 +189,9 @@ export const MappingWizard = ({
       progress: 100,
       startTime: new Date(),
       endTime: new Date(),
-      airflowDagRunId: "test-dag-run",
-      airflowTasks: [],
+      stages: [],
     };
   };
-
-  // Calculate total transformations
-  const totalTransformations = columnMappings.reduce(
-    (sum, mapping) =>
-      sum + mapping.columnMappings.filter((cm) => cm.transformation).length,
-    0
-  );
 
   return (
     <MappingProvider>
@@ -274,22 +244,6 @@ export const MappingWizard = ({
         )}
 
         {currentStep === 5 && (
-          <ReviewDeploy
-            projectName={project.name}
-            tableMappingsCount={tableMappings.length}
-            columnMappingsCount={columnMappings.reduce(
-              (sum, m) => sum + m.columnMappings.length,
-              0
-            )}
-            transformationsCount={totalTransformations}
-            scheduleEnabled={scheduleConfig.enabled}
-            cronExpression={scheduleConfig.cronExpression}
-            onDeploy={handleDeploy}
-            onSkipDeploy={handleSkipDeploy}
-          />
-        )}
-
-        {currentStep === 6 && (
           <ExecutionMonitor
             onStartExecution={handleStartExecution}
             onCheckStatus={handleCheckStatus}

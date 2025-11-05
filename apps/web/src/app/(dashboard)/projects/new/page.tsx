@@ -103,7 +103,7 @@ const NewProjectPage = () => {
   };
 
   const handleComplete = (): void => {
-    console.log("Creating project with data:", formData);
+    // Form data will be handled by server action
   };
 
   const updateFormData = (
