@@ -4,7 +4,7 @@ import { logger } from "@/lib/utils/logger";
 
 /**
  * GET /api/executions/queue-stats
- * Get ETL queue statistics
+ * Get BullMQ queue statistics
  */
 export async function GET() {
   try {
@@ -14,7 +14,15 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      stats,
+      stats: {
+        waiting: stats.waiting,
+        active: stats.active,
+        completed: stats.completed,
+        failed: stats.failed,
+        delayed: stats.delayed,
+        total: stats.total,
+      },
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     logger.error(`Failed to fetch queue statistics`, error);
@@ -28,4 +36,3 @@ export async function GET() {
     );
   }
 }
-
