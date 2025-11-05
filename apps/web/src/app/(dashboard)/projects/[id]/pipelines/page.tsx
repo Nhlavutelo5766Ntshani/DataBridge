@@ -4,7 +4,6 @@ import { fetchProjectPipelines, fetchProjectSchedule } from "@/lib/actions/pipel
 import { fetchUserConnections } from "@/lib/actions/connections";
 import { PipelineList } from "@/components/pipelines/pipeline-list";
 import { AddPipelineButton } from "@/components/pipelines/add-pipeline-button";
-import { GenerateDAGButton } from "@/components/pipelines/generate-dag-button";
 import { ScheduleCardWrapper } from "@/components/pipelines/schedule-card-wrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,11 +58,6 @@ const PipelinePage = async ({ params }: PipelinePageProps) => {
           <Badge variant={project.strategy === "multi-pipeline" ? "default" : "secondary"}>
             {project.strategy === "multi-pipeline" ? "Multi-Pipeline" : "Single Pipeline"}
           </Badge>
-          <GenerateDAGButton 
-            projectId={project.id} 
-            projectName={project.name}
-            hasPipelines={pipelines.length > 0}
-          />
           <AddPipelineButton projectId={project.id} connections={connections} />
         </div>
       </div>

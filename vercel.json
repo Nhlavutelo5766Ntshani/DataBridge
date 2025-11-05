@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapis.vercel.sh/vercel.json",
+  "buildCommand": "yarn workspace @databridge/schema build && yarn build",
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/run-scheduled-migrations",
+      "schedule": "0 */6 * * *"
+    }
+  ]
+}
+

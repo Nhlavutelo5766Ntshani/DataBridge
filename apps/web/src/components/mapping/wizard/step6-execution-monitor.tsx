@@ -6,7 +6,6 @@ import {
   XCircle,
   Loader2,
   AlertCircle,
-  ExternalLink,
   Play,
   Pause,
   RefreshCw,
@@ -19,10 +18,10 @@ import { cn } from "@/lib/utils/cn";
 
 type ExecutionStatus = "pending" | "running" | "completed" | "failed" | "cancelled" | "paused";
 
-type AirflowTaskStatus = {
-  taskId: string;
-  taskName: string;
-  status: "queued" | "running" | "success" | "failed" | "skipped";
+type ETLStageStatus = {
+  stageId: string;
+  stageName: string;
+  status: "pending" | "running" | "completed" | "failed" | "skipped";
   startTime?: Date;
   endTime?: Date;
   duration?: number;
@@ -38,17 +37,15 @@ type ExecutionData = {
   startTime: Date;
   endTime?: Date;
   errors?: string[];
-  airflowDagRunId?: string;
-  airflowTasks?: AirflowTaskStatus[];
+  stages?: ETLStageStatus[];
 };
 
 type ExecutionMonitorProps = {
-  onStartExecution: () => Promise<{ executionId: string; dagRunId?: string }>;
+  onStartExecution: () => Promise<{ executionId: string }>;
   onCheckStatus: (executionId: string) => Promise<ExecutionData>;
   onPauseExecution?: (executionId: string) => Promise<void>;
   onResumeExecution?: (executionId: string) => Promise<void>;
   onRetryExecution?: (executionId: string) => Promise<void>;
-  airflowUrl?: string;
 };
 
 export const ExecutionMonitor = ({
@@ -57,7 +54,6 @@ export const ExecutionMonitor = ({
   onPauseExecution,
   onResumeExecution,
   onRetryExecution,
-  airflowUrl = process.env.NEXT_PUBLIC_AIRFLOW_URL || "http://localhost:8080",
 }: ExecutionMonitorProps) => {
   const [execution, setExecution] = useState<ExecutionData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -179,10 +175,6 @@ export const ExecutionMonitor = ({
       ? ((execution.processedRecords / execution.totalRecords) * 100).toFixed(1)
       : "0";
 
-  const airflowDagUrl = execution.airflowDagRunId
-    ? `${airflowUrl}/dags/${execution.airflowDagRunId.split("/")[0]}/graph?dag_run_id=${execution.airflowDagRunId}`
-    : null;
-
   return (
     <>
       {/* Content Header */}
@@ -202,19 +194,6 @@ export const ExecutionMonitor = ({
               {isPaused && "Migration execution is paused."}
             </p>
           </div>
-
-          {airflowDagUrl && (
-            <a
-              href={airflowDagUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-[#06B6D4] hover:text-[#0891b2] font-medium"
-            >
-              <Activity className="w-4 h-4" />
-              View in Airflow
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          )}
         </div>
       </div>
 
@@ -270,45 +249,45 @@ export const ExecutionMonitor = ({
             </div>
           </Card>
 
-          {/* Airflow Task Status */}
-          {execution.airflowTasks && execution.airflowTasks.length > 0 && (
+          {/* ETL Stage Status */}
+          {execution.stages && execution.stages.length > 0 && (
             <Card className="p-6">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Activity className="w-5 h-5 text-[#06B6D4]" />
-                Airflow Pipeline Tasks
+                ETL Pipeline Stages
               </h3>
 
               <div className="space-y-2">
-                {execution.airflowTasks.map((task) => (
-                  <div key={task.taskId} className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg border">
+                {execution.stages.map((stage) => (
+                  <div key={stage.stageId} className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg border">
                     <div className="flex items-center gap-3">
-                      {task.status === "running" && (
+                      {stage.status === "running" && (
                         <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
                       )}
-                      {task.status === "success" && <CheckCircle className="w-4 h-4 text-green-600" />}
-                      {task.status === "failed" && <XCircle className="w-4 h-4 text-red-600" />}
-                      {task.status === "queued" && (
+                      {stage.status === "completed" && <CheckCircle className="w-4 h-4 text-green-600" />}
+                      {stage.status === "failed" && <XCircle className="w-4 h-4 text-red-600" />}
+                      {stage.status === "pending" && (
                         <div className="w-4 h-4 rounded-full border-2 border-gray-400" />
                       )}
-                      {task.status === "skipped" && (
+                      {stage.status === "skipped" && (
                         <div className="w-4 h-4 rounded-full bg-gray-400" />
                       )}
-                      <span className="text-sm font-medium text-gray-900">{task.taskName}</span>
+                      <span className="text-sm font-medium text-gray-900">{stage.stageName}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      {task.duration && (
-                        <span className="text-xs text-gray-500">{task.duration}s</span>
+                      {stage.duration && (
+                        <span className="text-xs text-gray-500">{stage.duration}s</span>
                       )}
                       <Badge
                         variant="outline"
                         className={cn(
-                          task.status === "success" && "bg-green-50 text-green-700 border-green-200",
-                          task.status === "running" && "bg-blue-50 text-blue-700 border-blue-200",
-                          task.status === "failed" && "bg-red-50 text-red-700 border-red-200",
-                          task.status === "queued" && "bg-gray-50 text-gray-700 border-gray-200"
+                          stage.status === "completed" && "bg-green-50 text-green-700 border-green-200",
+                          stage.status === "running" && "bg-blue-50 text-blue-700 border-blue-200",
+                          stage.status === "failed" && "bg-red-50 text-red-700 border-red-200",
+                          stage.status === "pending" && "bg-gray-50 text-gray-700 border-gray-200"
                         )}
                       >
-                        {task.status}
+                        {stage.status}
                       </Badge>
                     </div>
                   </div>

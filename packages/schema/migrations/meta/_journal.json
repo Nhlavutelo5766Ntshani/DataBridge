@@ -22,6 +22,13 @@
       "when": 1762265908329,
       "tag": "0003_flawless_logan",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1762382329713,
+      "tag": "0003_luxuriant_guardian",
+      "breakpoints": true
     }
   ]
 }

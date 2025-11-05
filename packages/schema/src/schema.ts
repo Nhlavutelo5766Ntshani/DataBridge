@@ -1,4 +1,5 @@
 import {
+  bigint,
   boolean,
   index,
   integer,
@@ -6,7 +7,9 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -84,12 +87,18 @@ export const mappingProjects = pgTable(
     ),
     strategy: text("strategy").default("single"),
     status: text("status").notNull().default("draft"),
+    scheduleEnabled: boolean("schedule_enabled").default(false),
+    scheduleCron: varchar("schedule_cron", { length: 100 }),
+    scheduleInterval: integer("schedule_interval"),
+    lastExecutionTime: timestamp("last_execution_time"),
+    etlConfig: jsonb("etl_config"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
   (t) => ({
     userIdIdx: index("mapping_projects_user_id_idx").on(t.userId),
     statusIdx: index("mapping_projects_status_idx").on(t.status),
+    scheduleEnabledIdx: index("mapping_projects_schedule_enabled_idx").on(t.scheduleEnabled),
   })
 );
 
@@ -367,6 +376,134 @@ export const validationReports = pgTable(
       t.executionId
     ),
     statusIdx: index("validation_reports_status_idx").on(t.status),
+  })
+);
+
+/**
+ * ETL Execution Stages - Tracks each stage of the ETL pipeline
+ */
+export const etlExecutionStages = pgTable(
+  "etl_execution_stages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    executionId: varchar("execution_id", { length: 255 }).notNull(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => mappingProjects.id, { onDelete: "cascade" }),
+    stageId: varchar("stage_id", { length: 50 }).notNull(),
+    stageName: varchar("stage_name", { length: 100 }).notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("pending"),
+    startTime: timestamp("start_time"),
+    endTime: timestamp("end_time"),
+    duration: integer("duration"),
+    recordsProcessed: integer("records_processed").default(0),
+    recordsFailed: integer("records_failed").default(0),
+    errorMessage: text("error_message"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => ({
+    uniqueExecutionStage: unique("unique_execution_stage").on(
+      t.executionId,
+      t.stageId
+    ),
+    executionIdx: index("idx_etl_stages_execution").on(t.executionId),
+    projectIdx: index("idx_etl_stages_project").on(t.projectId),
+    statusIdx: index("idx_etl_stages_status").on(t.status),
+  })
+);
+
+/**
+ * Attachment Migrations - Tracks CouchDB to SAP Object Store migrations
+ */
+export const attachmentMigrations = pgTable(
+  "attachment_migrations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    executionId: varchar("execution_id", { length: 255 }).notNull(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => mappingProjects.id, { onDelete: "cascade" }),
+    documentId: varchar("document_id", { length: 255 }).notNull(),
+    attachmentName: varchar("attachment_name", { length: 500 }).notNull(),
+    sourceUrl: text("source_url"),
+    targetUrl: text("target_url"),
+    contentType: varchar("content_type", { length: 100 }),
+    sizeBytes: bigint("size_bytes", { mode: "number" }),
+    status: varchar("status", { length: 20 }).notNull().default("pending"),
+    errorMessage: text("error_message"),
+    migratedAt: timestamp("migrated_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    uniqueAttachmentMigration: unique("unique_attachment_migration").on(
+      t.executionId,
+      t.documentId,
+      t.attachmentName
+    ),
+    executionIdx: index("idx_attachment_migrations_execution").on(t.executionId),
+    projectIdx: index("idx_attachment_migrations_project").on(t.projectId),
+    statusIdx: index("idx_attachment_migrations_status").on(t.status),
+  })
+);
+
+/**
+ * Data Validations - Stores validation results for each execution
+ */
+export const dataValidations = pgTable(
+  "data_validations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    executionId: varchar("execution_id", { length: 255 }).notNull(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => mappingProjects.id, { onDelete: "cascade" }),
+    tableName: varchar("table_name", { length: 255 }).notNull(),
+    validationType: varchar("validation_type", { length: 50 }).notNull(),
+    expectedValue: text("expected_value"),
+    actualValue: text("actual_value"),
+    status: varchar("status", { length: 20 }).notNull(),
+    message: text("message"),
+    validatedAt: timestamp("validated_at").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    executionIdx: index("idx_data_validations_execution").on(t.executionId),
+    projectIdx: index("idx_data_validations_project").on(t.projectId),
+    statusIdx: index("idx_data_validations_status").on(t.status),
+  })
+);
+
+/**
+ * Migration Reports - Comprehensive reports for each migration execution
+ */
+export const migrationReports = pgTable(
+  "migration_reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    executionId: varchar("execution_id", { length: 255 })
+      .unique("unique_execution_id")
+      .notNull(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => mappingProjects.id, { onDelete: "cascade" }),
+    projectName: varchar("project_name", { length: 255 }).notNull(),
+    startTime: timestamp("start_time").notNull(),
+    endTime: timestamp("end_time").notNull(),
+    durationMs: integer("duration_ms").notNull(),
+    summary: jsonb("summary").notNull(),
+    stages: jsonb("stages").notNull(),
+    validations: jsonb("validations").notNull(),
+    tableDetails: jsonb("table_details").notNull(),
+    errors: jsonb("errors"),
+    warnings: jsonb("warnings"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    executionIdx: index("idx_migration_reports_execution").on(t.executionId),
+    projectIdx: index("idx_migration_reports_project").on(t.projectId),
+    createdIdx: index("idx_migration_reports_created").on(t.createdAt),
   })
 );
 
