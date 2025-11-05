@@ -76,13 +76,13 @@ const DashboardPage = async () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-3">
             Welcome back! Here&apos;s an overview of your data migrations.
           </p>
         </div>
         <Link href={PATHS.DASHBOARD.PROJECTS_NEW}>
-          <Button className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+          <Button className="bg-primary hover:bg-primary/90 text-white">
             <Plus className="h-4 w-4 mr-2" />
             New Project
           </Button>
@@ -94,18 +94,18 @@ const DashboardPage = async () => {
           const Icon = stat.icon;
           return (
             <Link key={stat.title} href={stat.href}>
-              <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
+              <Card className="hover:shadow-md transition-all cursor-pointer border-l-4 border-l-primary">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-medium text-gray-700">
                     {stat.title}
                   </CardTitle>
-                  <div className={`${stat.bgColor} p-2 rounded-lg`}>
-                    <Icon className={`h-4 w-4 ${stat.color}`} />
-                  </div>
+                  <Icon className="h-5 w-5 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <div className="text-2xl font-bold text-gray-900">
+                    {stat.value}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
                     Click to view details
                   </p>
                 </CardContent>
@@ -116,23 +116,23 @@ const DashboardPage = async () => {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+        <CardHeader variant="gray">
+          <CardTitle variant="small">Quick Actions</CardTitle>
           <CardDescription>Common tasks and shortcuts</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <CardContent className="pt-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Link href={PATHS.DASHBOARD.CONNECTIONS_NEW}>
               <Button
                 variant="outline"
-                className="w-full h-auto p-4 flex flex-col items-center gap-2 hover:border-cyan-300 hover:bg-cyan-50/50"
+                className="w-full h-auto p-5 flex flex-col items-center gap-3 hover:border-primary hover:bg-primary/5 transition-all"
               >
-                <Database className="h-6 w-6 text-cyan-600" />
+                <Database className="h-7 w-7 text-primary" />
                 <div className="text-center">
-                  <div className="font-medium text-sm">New Connection</div>
-                  <div className="text-xs text-muted-foreground">
-                    Add database
+                  <div className="font-medium text-sm text-gray-900">
+                    New Connection
                   </div>
+                  <div className="text-xs text-gray-500 mt-1">Add database</div>
                 </div>
               </Button>
             </Link>
@@ -140,12 +140,14 @@ const DashboardPage = async () => {
             <Link href={PATHS.DASHBOARD.PROJECTS_NEW}>
               <Button
                 variant="outline"
-                className="w-full h-auto p-4 flex flex-col items-center gap-2 hover:border-teal-300 hover:bg-teal-50/50"
+                className="w-full h-auto p-5 flex flex-col items-center gap-3 hover:border-primary hover:bg-primary/5 transition-all"
               >
-                <FolderKanban className="h-6 w-6 text-teal-600" />
+                <FolderKanban className="h-7 w-7 text-primary" />
                 <div className="text-center">
-                  <div className="font-medium text-sm">New Project</div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="font-medium text-sm text-gray-900">
+                    New Project
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
                     Start migration
                   </div>
                 </div>
@@ -155,12 +157,14 @@ const DashboardPage = async () => {
             <Link href={PATHS.DASHBOARD.MIGRATIONS}>
               <Button
                 variant="outline"
-                className="w-full h-auto p-4 flex flex-col items-center gap-2 hover:border-cyan-300 hover:bg-cyan-50/50"
+                className="w-full h-auto p-5 flex flex-col items-center gap-3 hover:border-primary hover:bg-primary/5 transition-all"
               >
-                <GitBranch className="h-6 w-6 text-cyan-600" />
+                <GitBranch className="h-7 w-7 text-primary" />
                 <div className="text-center">
-                  <div className="font-medium text-sm">View Migrations</div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="font-medium text-sm text-gray-900">
+                    View Migrations
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
                     Track progress
                   </div>
                 </div>
@@ -170,12 +174,14 @@ const DashboardPage = async () => {
             <Link href={PATHS.DASHBOARD.REPORTS}>
               <Button
                 variant="outline"
-                className="w-full h-auto p-4 flex flex-col items-center gap-2 hover:border-teal-300 hover:bg-teal-50/50"
+                className="w-full h-auto p-5 flex flex-col items-center gap-3 hover:border-primary hover:bg-primary/5 transition-all"
               >
-                <FileText className="h-6 w-6 text-teal-600" />
+                <FileText className="h-7 w-7 text-primary" />
                 <div className="text-center">
-                  <div className="font-medium text-sm">View Reports</div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="font-medium text-sm text-gray-900">
+                    View Reports
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
                     Analyze results
                   </div>
                 </div>
@@ -186,13 +192,13 @@ const DashboardPage = async () => {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Get Started</CardTitle>
+        <CardHeader variant="gray">
+          <CardTitle variant="small">Get Started</CardTitle>
           <CardDescription>
             Start by creating a database connection
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Activity className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground mb-4">
@@ -207,7 +213,7 @@ const DashboardPage = async () => {
                   : PATHS.DASHBOARD.PROJECTS_NEW
               }
             >
-              <Button className="bg-gradient-to-r from-primary to-secondary">
+              <Button className="bg-primary hover:bg-primary/90 text-white">
                 {stats.activeConnections === 0
                   ? "Create Connection"
                   : "Create Project"}
@@ -221,4 +227,3 @@ const DashboardPage = async () => {
 };
 
 export default DashboardPage;
-
