@@ -1,12 +1,5 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -24,291 +17,302 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { PATHS } from "@/lib/constants/paths";
-import { TEMP_USER_ID } from "@/lib/constants/temp-data";
-import { fetchUserConnections, type Connection } from "@/lib/actions/connections";
-import { addProject } from "@/lib/actions/projects";
+import { WizardLayout } from "@/components/wizard/wizard-layout";
+import { ArrowRightLeft, CheckCircle2, Database, Settings } from "lucide-react";
+import { useState } from "react";
+
+type ProjectFormData = {
+  name: string;
+  description: string;
+  sourceConnection: string;
+  targetConnection: string;
+  mappingStrategy: string;
+};
 
 const NewProjectPage = () => {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [connections, setConnections] = useState<Connection[]>([]);
-  const [loadingConnections, setLoadingConnections] = useState(true);
-
-  const [formData, setFormData] = useState({
+  const [currentStep, setCurrentStep] = useState(0);
+  const [formData, setFormData] = useState<ProjectFormData>({
     name: "",
     description: "",
-    strategy: "single" as "single" | "multi-pipeline",
-    sourceConnectionId: "",
-    targetConnectionId: "",
+    sourceConnection: "",
+    targetConnection: "",
+    mappingStrategy: "manual",
   });
 
-  useEffect(() => {
-    const loadConnections = async () => {
-      const result = await fetchUserConnections(TEMP_USER_ID);
-      if (result.success && result.data) {
-        setConnections(result.data);
-      } else {
-        toast.error("Failed to load connections");
-      }
-      setLoadingConnections(false);
-    };
+  const steps = [
+    {
+      id: "project-details",
+      title: "Project Details",
+      description: "Basic information about your migration project",
+      icon: <Database className="w-4 h-4" />,
+      status:
+        currentStep > 0
+          ? ("completed" as const)
+          : currentStep === 0
+          ? ("current" as const)
+          : ("pending" as const),
+    },
+    {
+      id: "connections",
+      title: "Select Connections",
+      description: "Choose source and target databases",
+      icon: <ArrowRightLeft className="w-4 h-4" />,
+      status:
+        currentStep > 1
+          ? ("completed" as const)
+          : currentStep === 1
+          ? ("current" as const)
+          : ("pending" as const),
+    },
+    {
+      id: "configuration",
+      title: "Configuration",
+      description: "Set up migration preferences",
+      icon: <Settings className="w-4 h-4" />,
+      status:
+        currentStep > 2
+          ? ("completed" as const)
+          : currentStep === 2
+          ? ("current" as const)
+          : ("pending" as const),
+    },
+    {
+      id: "review",
+      title: "Review & Create",
+      description: "Review your settings and create project",
+      icon: <CheckCircle2 className="w-4 h-4" />,
+      status:
+        currentStep > 3
+          ? ("completed" as const)
+          : currentStep === 3
+          ? ("current" as const)
+          : ("pending" as const),
+    },
+  ];
 
-    loadConnections();
-  }, []);
+  const handleNext = (): void => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
 
-  const handleChange = (field: string, value: string) => {
+  const handlePrevious = (): void => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleComplete = (): void => {
+    console.log("Creating project with data:", formData);
+  };
+
+  const updateFormData = (
+    field: keyof ProjectFormData,
+    value: string
+  ): void => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.name.trim()) {
-      toast.error("Project name is required");
-      return;
-    }
-
-    if (formData.strategy === "single") {
-      if (!formData.sourceConnectionId) {
-        toast.error("Please select a source connection");
-        return;
-      }
-
-      if (!formData.targetConnectionId) {
-        toast.error("Please select a target connection");
-        return;
-      }
-
-      if (formData.sourceConnectionId === formData.targetConnectionId) {
-        toast.error("Source and target connections must be different");
-        return;
-      }
-    }
-
-    setIsLoading(true);
-
-    const result = await addProject({
-      userId: TEMP_USER_ID,
-      name: formData.name,
-      description: formData.description || null,
-      strategy: formData.strategy,
-      sourceConnectionId: formData.sourceConnectionId || null,
-      targetConnectionId: formData.targetConnectionId || null,
-      status: "draft",
-    });
-
-    setIsLoading(false);
-
-    if (result.success) {
-      toast.success("Project created successfully!");
-      router.push(PATHS.DASHBOARD.PROJECTS);
-    } else {
-      const errorMessage = Array.isArray(result.error)
-        ? result.error.join(", ")
-        : result.error || "Failed to create project";
-      toast.error(errorMessage);
-    }
-  };
-
-  const sourceConnections = connections.filter(c => c.type === "source");
-  const targetConnections = connections.filter(c => c.type === "target");
-
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center space-x-4">
-        <Link href={PATHS.DASHBOARD.PROJECTS}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            New Migration Project
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Create a new data migration project
-          </p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Project Details</CardTitle>
-            <CardDescription>
-              Configure your migration project settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="name">Project Name *</Label>
-              <Input
-                id="name"
-                placeholder="e.g., Customer Database Migration"
-                value={formData.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea
-                id="description"
-                placeholder="Add notes about this migration project..."
-                value={formData.description}
-                onChange={(e) => handleChange("description", e.target.value)}
-                disabled={isLoading}
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="strategy">Migration Strategy *</Label>
-              <Select
-                value={formData.strategy}
-                onValueChange={(value) =>
-                  handleChange("strategy", value)
-                }
-                disabled={isLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="single">
-                    <div className="flex flex-col items-start">
-                      <span className="font-medium">Single Pipeline</span>
-                      <span className="text-xs text-muted-foreground">
-                        Direct migration from source to target
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="multi-pipeline">
-                    <div className="flex flex-col items-start">
-                      <span className="font-medium">Multi-Pipeline</span>
-                      <span className="text-xs text-muted-foreground">
-                        Staging → Production workflow with transformations
-                      </span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              {formData.strategy === "multi-pipeline" && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  You&apos;ll configure individual pipelines after creating the project
-                </p>
-              )}
-            </div>
-
-            {formData.strategy === "single" && (
-              <div className="grid gap-4 md:grid-cols-2">
+    <WizardLayout
+      steps={steps}
+      currentStep={currentStep}
+      onStepChange={setCurrentStep}
+      onNext={handleNext}
+      onPrevious={handlePrevious}
+      onComplete={handleComplete}
+      title="Create New Project"
+      subtitle="Set up a new data migration project"
+      allowNavigation={true}
+    >
+      {currentStep === 0 && (
+        <div className="p-6 space-y-6">
+          <Card>
+            <CardHeader variant="gray">
+              <CardTitle variant="small">Project Information</CardTitle>
+              <CardDescription>
+                Provide a name and description for your project
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="source">Source Connection *</Label>
-                <Select
-                  value={formData.sourceConnectionId}
-                  onValueChange={(value) =>
-                    handleChange("sourceConnectionId", value)
+                <Label htmlFor="project-name">Project Name</Label>
+                <Input
+                  id="project-name"
+                  placeholder="e.g., Customer Data Migration"
+                  value={formData.name}
+                  onChange={(e) => updateFormData("name", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="project-description">Description</Label>
+                <Textarea
+                  id="project-description"
+                  placeholder="Describe the purpose of this migration..."
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) =>
+                    updateFormData("description", e.target.value)
                   }
-                  disabled={isLoading || loadingConnections}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {currentStep === 1 && (
+        <div className="p-6 space-y-6">
+          <Card>
+            <CardHeader variant="gray">
+              <CardTitle variant="small">Database Connections</CardTitle>
+              <CardDescription>
+                Select the source and target databases for this migration
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="source-connection">Source Connection</Label>
+                <Select
+                  value={formData.sourceConnection}
+                  onValueChange={(value) =>
+                    updateFormData("sourceConnection", value)
+                  }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="source-connection">
                     <SelectValue placeholder="Select source database" />
                   </SelectTrigger>
                   <SelectContent>
-                    {sourceConnections.length === 0 ? (
-                      <div className="p-2 text-sm text-muted-foreground">
-                        No source connections available
-                      </div>
-                    ) : (
-                      sourceConnections.map((conn) => (
-                        <SelectItem key={conn.id} value={conn.id}>
-                          {conn.name} ({conn.dbType})
-                        </SelectItem>
-                      ))
-                    )}
+                    <SelectItem value="legacy-db">Legacy PostgreSQL</SelectItem>
+                    <SelectItem value="old-mysql">Old MySQL Server</SelectItem>
+                    <SelectItem value="oracle-prod">
+                      Oracle Production
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="target">Target Connection *</Label>
+                <Label htmlFor="target-connection">Target Connection</Label>
                 <Select
-                  value={formData.targetConnectionId}
+                  value={formData.targetConnection}
                   onValueChange={(value) =>
-                    handleChange("targetConnectionId", value)
+                    updateFormData("targetConnection", value)
                   }
-                  disabled={isLoading || loadingConnections}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="target-connection">
                     <SelectValue placeholder="Select target database" />
                   </SelectTrigger>
                   <SelectContent>
-                    {targetConnections.length === 0 ? (
-                      <div className="p-2 text-sm text-muted-foreground">
-                        No target connections available
-                      </div>
-                    ) : (
-                      targetConnections.map((conn) => (
-                        <SelectItem key={conn.id} value={conn.id}>
-                          {conn.name} ({conn.dbType})
-                        </SelectItem>
-                      ))
-                    )}
+                    <SelectItem value="new-postgres">
+                      New PostgreSQL 15
+                    </SelectItem>
+                    <SelectItem value="cloud-mysql">
+                      Cloud MySQL Instance
+                    </SelectItem>
+                    <SelectItem value="azure-sql">
+                      Azure SQL Database
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-            {formData.strategy === "single" && (sourceConnections.length === 0 || targetConnections.length === 0) && (
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  You need at least one source and one target connection to create a project.{" "}
-                  <Link
-                    href={PATHS.DASHBOARD.CONNECTIONS_NEW}
-                    className="underline font-medium"
-                  >
-                    Create connections
-                  </Link>
-                </p>
+      {currentStep === 2 && (
+        <div className="p-6 space-y-6">
+          <Card>
+            <CardHeader variant="gray">
+              <CardTitle variant="small">Migration Settings</CardTitle>
+              <CardDescription>
+                Configure how the migration should be performed
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="mapping-strategy">Mapping Strategy</Label>
+                <Select
+                  value={formData.mappingStrategy}
+                  onValueChange={(value) =>
+                    updateFormData("mappingStrategy", value)
+                  }
+                >
+                  <SelectTrigger id="mapping-strategy">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Manual Mapping</SelectItem>
+                    <SelectItem value="auto">
+                      Auto-detect (AI Assisted)
+                    </SelectItem>
+                    <SelectItem value="template">Use Template</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-            {formData.strategy === "multi-pipeline" && (
-              <div className="p-4 bg-[#06B6D4]/10 border border-[#06B6D4]/20 rounded-lg">
-                <p className="text-sm text-gray-700">
-                  <strong>Multi-Pipeline Strategy:</strong> After creating the project, you&apos;ll be able to add multiple pipelines (e.g., Source → Staging, Staging → Production) with custom transformations for each stage.
-                </p>
+      {currentStep === 3 && (
+        <div className="p-6 space-y-6">
+          <Card>
+            <CardHeader variant="gray">
+              <CardTitle variant="small">Review Your Project</CardTitle>
+              <CardDescription>
+                Verify all settings before creating the project
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
+              <div className="space-y-3">
+                <div>
+                  <div className="text-sm font-medium text-gray-700">
+                    Project Name
+                  </div>
+                  <div className="text-sm text-gray-900">
+                    {formData.name || "Not set"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-700">
+                    Description
+                  </div>
+                  <div className="text-sm text-gray-900">
+                    {formData.description || "Not set"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-700">
+                    Source Connection
+                  </div>
+                  <div className="text-sm text-gray-900">
+                    {formData.sourceConnection || "Not selected"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-700">
+                    Target Connection
+                  </div>
+                  <div className="text-sm text-gray-900">
+                    {formData.targetConnection || "Not selected"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-700">
+                    Mapping Strategy
+                  </div>
+                  <div className="text-sm text-gray-900">
+                    {formData.mappingStrategy}
+                  </div>
+                </div>
               </div>
-            )}
-
-            <div className="flex justify-end space-x-4 pt-4">
-              <Link href={PATHS.DASHBOARD.PROJECTS}>
-                <Button type="button" variant="outline" disabled={isLoading}>
-                  Cancel
-                </Button>
-              </Link>
-              <Button
-                type="submit"
-                disabled={
-                  isLoading ||
-                  (formData.strategy === "single" && 
-                    (sourceConnections.length === 0 || targetConnections.length === 0))
-                }
-                className="bg-gradient-to-r from-primary to-secondary hover:opacity-90"
-              >
-                {isLoading ? "Creating..." : "Create Project"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </form>
-    </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </WizardLayout>
   );
 };
 
 export default NewProjectPage;
-
