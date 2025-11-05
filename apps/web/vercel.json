@@ -1,0 +1,5 @@
+{
+  "buildCommand": "yarn workspace @databridge/schema build && yarn build",
+  "framework": "nextjs"
+}
+

@@ -78,7 +78,7 @@ const DashboardPage = async () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground mt-1">
-            Welcome back! Here's an overview of your data migrations.
+            Welcome back! Here&apos;s an overview of your data migrations.
           </p>
         </div>
         <Link href={PATHS.DASHBOARD.PROJECTS_NEW}>

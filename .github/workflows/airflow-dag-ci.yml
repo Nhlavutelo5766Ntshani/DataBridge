@@ -1,5 +1,9 @@
 name: Airflow DAG CI/CD
 
+# Note: Linter warnings about optional secrets/variables (DEV_AIRFLOW_API_URL, PROD_AIRFLOW_API_URL, etc.)
+# are expected and safe to ignore until you configure them in:
+# GitHub Settings → Secrets and variables → Actions
+
 on:
   push:
     branches:
@@ -153,21 +157,29 @@ jobs:
           echo "If you're using manual deployment, copy DAGs to your Airflow server:"
           echo "  scp -r airflow/dags/* user@dev-airflow-host:/path/to/airflow/dags/"
 
+      # Optional: Trigger Airflow to refresh DAG list
+      # Note: Linter warnings about DEV_AIRFLOW_API_URL and DEV_AIRFLOW_API_KEY are expected
+      # until you configure these variables in GitHub Settings → Secrets and variables → Actions
       - name: Trigger Airflow DAG refresh (Optional)
         if: ${{ vars.DEV_AIRFLOW_API_URL != '' }}
         run: |
+          echo "Triggering Airflow to refresh DAG list..."
           curl -X POST "${{ vars.DEV_AIRFLOW_API_URL }}/api/v1/dags/~" \
             -H "Authorization: Bearer ${{ secrets.DEV_AIRFLOW_API_KEY }}" \
             -H "Content-Type: application/json" \
             || echo "Could not trigger DAG refresh - Airflow will pick up changes automatically"
+          echo ""
+          echo "ℹ️  Note: DAG runs are triggered automatically by DataBridge UI"
+          echo "   Users can monitor execution in Airflow at: ${DEV_AIRFLOW_API_URL/\/api\/v1/}"
 
       - name: Send Slack notification (Optional)
         if: ${{ vars.SLACK_WEBHOOK_URL != '' }}
         uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK: ${{ vars.SLACK_WEBHOOK_URL }}
         with:
           status: ${{ job.status }}
           text: 'DAG deployment to Development: ${{ job.status }}'
-          webhook_url: ${{ vars.SLACK_WEBHOOK_URL }}
 
   deploy-to-prod:
     name: Deploy to Production
@@ -192,10 +204,14 @@ jobs:
       - name: Trigger Airflow DAG refresh (Optional)
         if: ${{ vars.PROD_AIRFLOW_API_URL != '' }}
         run: |
+          echo "Triggering Airflow to refresh DAG list..."
           curl -X POST "${{ vars.PROD_AIRFLOW_API_URL }}/api/v1/dags/~" \
             -H "Authorization: Bearer ${{ secrets.PROD_AIRFLOW_API_KEY }}" \
             -H "Content-Type: application/json" \
             || echo "Could not trigger DAG refresh - Airflow will pick up changes automatically"
+          echo ""
+          echo "ℹ️  Note: DAG runs are triggered automatically by DataBridge UI"
+          echo "   Users can monitor execution in Airflow at: ${PROD_AIRFLOW_API_URL/\/api\/v1/}"
 
       - name: Verify deployment (Optional)
         if: ${{ vars.PROD_AIRFLOW_API_URL != '' }}
@@ -211,10 +227,11 @@ jobs:
       - name: Send Slack notification (Optional)
         if: ${{ vars.SLACK_WEBHOOK_URL != '' }}
         uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK: ${{ vars.SLACK_WEBHOOK_URL }}
         with:
           status: ${{ job.status }}
           text: 'DAG deployment to Production: ${{ job.status }}'
-          webhook_url: ${{ vars.SLACK_WEBHOOK_URL }}
 
       - name: Create GitHub Release (Optional)
         if: success()

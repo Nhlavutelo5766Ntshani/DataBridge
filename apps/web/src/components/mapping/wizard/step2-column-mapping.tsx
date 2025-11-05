@@ -185,7 +185,7 @@ export const ColumnMapping = ({
             <ol className="list-decimal list-inside space-y-1 text-gray-600">
               <li>Select a source column (left side) - it will highlight in cyan</li>
               <li>Select a target column (right side) - it will highlight in teal</li>
-              <li>Click the "Map" button that appears between them</li>
+              <li>Click the &quot;Map&quot; button that appears between them</li>
               <li>
                 Click <Settings className="w-3.5 h-3.5 inline mx-1" />
                 <strong>Transform</strong> button to add data transformations (type conversion, SQL

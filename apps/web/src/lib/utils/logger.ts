@@ -49,13 +49,19 @@ class Logger {
    * @param meta - Additional metadata
    */
   private log(
-    _level: LogLevel,
-    _message: string,
-    _meta?: Record<string, unknown>
+    level: LogLevel,
+    message: string,
+    meta?: Record<string, unknown>
   ): void {
     if (process.env.NODE_ENV === "production") {
       return;
     }
+    
+    const logEntry = meta
+      ? `[${level.toUpperCase()}] ${message} ${JSON.stringify(meta)}`
+      : `[${level.toUpperCase()}] ${message}`;
+    
+    console.log(logEntry);
   }
 }
 

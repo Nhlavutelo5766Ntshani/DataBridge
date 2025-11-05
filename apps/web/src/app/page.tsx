@@ -35,7 +35,7 @@ const HomePage = () => {
               <span className="text-primary">Simple</span>
             </h1>
             <p className="mt-6 text-lg leading-8 text-muted-foreground">
-              DataBridge is Integrove's internal platform for seamless SQL
+              DataBridge is Integrove&apos;s internal platform for seamless SQL
               Server to PostgreSQL data migrations. Map, transform, and migrate
               your data with confidence.
             </p>

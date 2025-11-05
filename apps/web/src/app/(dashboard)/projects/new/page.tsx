@@ -198,7 +198,7 @@ const NewProjectPage = () => {
               </Select>
               {formData.strategy === "multi-pipeline" && (
                 <p className="text-xs text-muted-foreground mt-2">
-                  You'll configure individual pipelines after creating the project
+                  You&apos;ll configure individual pipelines after creating the project
                 </p>
               )}
             </div>
@@ -280,7 +280,7 @@ const NewProjectPage = () => {
             {formData.strategy === "multi-pipeline" && (
               <div className="p-4 bg-[#06B6D4]/10 border border-[#06B6D4]/20 rounded-lg">
                 <p className="text-sm text-gray-700">
-                  <strong>Multi-Pipeline Strategy:</strong> After creating the project, you'll be able to add multiple pipelines (e.g., Source → Staging, Staging → Production) with custom transformations for each stage.
+                  <strong>Multi-Pipeline Strategy:</strong> After creating the project, you&apos;ll be able to add multiple pipelines (e.g., Source → Staging, Staging → Production) with custom transformations for each stage.
                 </p>
               </div>
             )}

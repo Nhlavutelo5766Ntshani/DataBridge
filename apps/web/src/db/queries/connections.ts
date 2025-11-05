@@ -47,7 +47,8 @@ export async function getUserConnections(
 export async function createConnection(
   connectionData: NewConnection
 ): Promise<Connection> {
-  const { id, ...rest } = connectionData;
+  const rest = { ...connectionData };
+  delete rest.id;
   const [newConnection] = await db.insert(connections).values(rest).returning();
 
   if (!newConnection) {
@@ -67,7 +68,8 @@ export async function updateConnection(
   connectionId: string,
   connectionData: Partial<NewConnection>
 ): Promise<Connection> {
-  const { id, ...rest } = connectionData;
+  const rest = { ...connectionData };
+  delete rest.id;
   const [updatedConnection] = await db
     .update(connections)
     .set({ ...rest, updatedAt: new Date() })

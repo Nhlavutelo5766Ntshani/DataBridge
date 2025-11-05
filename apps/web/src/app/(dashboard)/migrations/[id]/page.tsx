@@ -33,7 +33,7 @@ const MigrationDetailPage = async (props: MigrationDetailPageProps) => {
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">Execution Not Found</h2>
           <p className="text-muted-foreground mb-4">
-            The migration execution you're looking for doesn't exist.
+            The migration execution you&apos;re looking for doesn&apos;t exist.
           </p>
           <Link href={PATHS.DASHBOARD.MIGRATIONS}>
             <Button>Back to Migrations</Button>

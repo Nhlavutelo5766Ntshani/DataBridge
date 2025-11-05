@@ -198,7 +198,7 @@ const SettingsPage = () => {
                   <p className="text-sm font-mono">
                     curl -X GET https://api.databridge.integrove.com/v1/projects
                     \<br />
-                    &nbsp;&nbsp;-H "Authorization: Bearer YOUR_API_KEY"
+                    &nbsp;&nbsp;-H &quot;Authorization: Bearer YOUR_API_KEY&quot;
                   </p>
                 </div>
                 <Button variant="outline">View Full Documentation</Button>
