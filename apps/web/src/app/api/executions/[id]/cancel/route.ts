@@ -1,44 +1,73 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 import { cancelJob } from "@/lib/queue/etl-queue";
+import { updateExecutionStageByIds } from "@/db/queries/etl-executions";
+import { getExecutionStages } from "@/db/queries/etl-executions";
 import { logger } from "@/lib/utils/logger";
 
 /**
  * POST /api/executions/[id]/cancel
- * Cancel an ETL execution
+ * Cancel an ETL execution and all its queued jobs
  */
 export async function POST(
-  _request: NextRequest,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: executionId } = await params;
 
+    if (!executionId) {
+      return NextResponse.json(
+        { error: "Execution ID is required" },
+        { status: 400 }
+      );
+    }
+
     logger.info(`Cancelling execution`, { executionId });
 
-    // Cancel all stage jobs for this execution
-    const stages = [
-      "extract",
-      "transform",
-      "load-dimensions",
-      "load-facts",
-      "validate",
-      "report",
-    ];
+    const stages = await getExecutionStages(executionId);
 
-    await Promise.all(
-      stages.map(async (stage) => {
-        const jobId = `${executionId}-${stage}`;
-        await cancelJob(jobId);
-      })
-    );
+    if (!stages || stages.length === 0) {
+      return NextResponse.json(
+        { error: "Execution not found" },
+        { status: 404 }
+      );
+    }
 
-    logger.success(`Execution cancelled`, { executionId });
+    let cancelledCount = 0;
+
+    for (const stage of stages) {
+      if (stage.status === "pending" || stage.status === "running") {
+        const jobId = `${executionId}-${stage.stageId}`;
+        
+        try {
+          await cancelJob(jobId);
+          
+          await updateExecutionStageByIds(executionId, stage.stageId, {
+            status: "failed",
+            errorMessage: "Cancelled by user",
+            endTime: new Date(),
+          });
+
+          cancelledCount++;
+        } catch (error) {
+          logger.error(`Failed to cancel job`, {
+            jobId,
+            error,
+          });
+        }
+      }
+    }
+
+    logger.success(`Execution cancelled`, {
+      executionId,
+      stagesCancelled: cancelledCount,
+    });
 
     return NextResponse.json({
       success: true,
       executionId,
-      message: "Execution cancelled successfully",
+      stagesCancelled: cancelledCount,
+      message: `Cancelled ${cancelledCount} stage(s)`,
     });
   } catch (error) {
     logger.error(`Failed to cancel execution`, error);
@@ -52,4 +81,3 @@ export async function POST(
     );
   }
 }
-
