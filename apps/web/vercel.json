@@ -1,0 +1,7 @@
+{
+  "buildCommand": "cd ../.. && yarn workspace @databridge/schema build && yarn workspace @databridge/web build",
+  "installCommand": "cd ../.. && yarn install",
+  "framework": "nextjs",
+  "outputDirectory": ".next"
+}
+
