@@ -8,11 +8,11 @@ import { logger } from "@/lib/utils/logger";
  * Cancel an ETL execution
  */
 export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const executionId = params.id;
+    const { id: executionId } = await params;
 
     logger.info(`Cancelling execution`, { executionId });
 

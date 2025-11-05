@@ -8,11 +8,11 @@ import { logger } from "@/lib/utils/logger";
  * Get execution status for all stages
  */
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const executionId = params.id;
+    const { id: executionId } = await params;
 
     logger.info(`Fetching execution status`, { executionId });
 

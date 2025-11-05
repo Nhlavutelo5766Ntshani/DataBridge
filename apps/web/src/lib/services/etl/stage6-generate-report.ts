@@ -1,4 +1,4 @@
-import type { MigrationReport, StageResult } from "@/lib/types/etl";
+import type { StageResult } from "@/lib/types/etl";
 import { logger } from "@/lib/utils/logger";
 
 /**

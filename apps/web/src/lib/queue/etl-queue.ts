@@ -25,26 +25,33 @@ function getRedisConnection() {
 
 /**
  * ETL Job Queue using BullMQ
- * Handles queueing and processing of ETL pipeline stages
+ * Lazy-loaded to avoid initialization during build time
  */
-export const etlQueue = new Queue<ETLJobData>("etl-jobs", {
-  connection: getRedisConnection(),
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: {
-      type: "exponential",
-      delay: 5000,
-    },
-    removeOnComplete: {
-      age: 86400, // 24 hours
-      count: 100, // Keep last 100 completed jobs
-    },
-    removeOnFail: {
-      age: 604800, // 7 days
-      count: 500, // Keep last 500 failed jobs for debugging
-    },
-  },
-});
+let etlQueueInstance: Queue<ETLJobData> | null = null;
+
+function getQueue(): Queue<ETLJobData> {
+  if (!etlQueueInstance) {
+    etlQueueInstance = new Queue<ETLJobData>("etl-jobs", {
+      connection: getRedisConnection(),
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 5000,
+        },
+        removeOnComplete: {
+          age: 86400, // 24 hours
+          count: 100, // Keep last 100 completed jobs
+        },
+        removeOnFail: {
+          age: 604800, // 7 days
+          count: 500, // Keep last 500 failed jobs for debugging
+        },
+      },
+    });
+  }
+  return etlQueueInstance;
+}
 
 /**
  * Add ETL pipeline execution to queue
@@ -58,7 +65,7 @@ export async function queueETLExecution(jobData: ETLJobData): Promise<string> {
     stage: jobData.stage,
   });
 
-  const job = await etlQueue.add(
+  const job = await getQueue().add(
     `etl-${jobData.executionId}-${jobData.stage}`,
     jobData,
     {
@@ -147,7 +154,7 @@ function getPriority(stage: ETLJobData["stage"]): number {
  * @returns Job status and progress
  */
 export async function getJobStatus(jobId: string) {
-  const job = await etlQueue.getJob(jobId);
+  const job = await getQueue().getJob(jobId);
 
   if (!job) {
     return null;
@@ -157,7 +164,7 @@ export async function getJobStatus(jobId: string) {
     id: job.id,
     name: job.name,
     data: job.data,
-    progress: await job.progress(),
+    progress: job.progress,
     state: await job.getState(),
     attemptsMade: job.attemptsMade,
     failedReason: job.failedReason,
@@ -171,7 +178,7 @@ export async function getJobStatus(jobId: string) {
  * @param jobId - Job ID
  */
 export async function cancelJob(jobId: string): Promise<void> {
-  const job = await etlQueue.getJob(jobId);
+  const job = await getQueue().getJob(jobId);
 
   if (job) {
     await job.remove();
@@ -183,7 +190,7 @@ export async function cancelJob(jobId: string): Promise<void> {
  * Pause the queue
  */
 export async function pauseQueue(): Promise<void> {
-  await etlQueue.pause();
+  await getQueue().pause();
   logger.warn(`ETL queue paused`);
 }
 
@@ -191,7 +198,7 @@ export async function pauseQueue(): Promise<void> {
  * Resume the queue
  */
 export async function resumeQueue(): Promise<void> {
-  await etlQueue.resume();
+  await getQueue().resume();
   logger.info(`ETL queue resumed`);
 }
 
@@ -199,12 +206,13 @@ export async function resumeQueue(): Promise<void> {
  * Get queue statistics
  */
 export async function getQueueStats() {
+  const queue = getQueue();
   const [waiting, active, completed, failed, delayed] = await Promise.all([
-    etlQueue.getWaitingCount(),
-    etlQueue.getActiveCount(),
-    etlQueue.getCompletedCount(),
-    etlQueue.getFailedCount(),
-    etlQueue.getDelayedCount(),
+    queue.getWaitingCount(),
+    queue.getActiveCount(),
+    queue.getCompletedCount(),
+    queue.getFailedCount(),
+    queue.getDelayedCount(),
   ]);
 
   return {
