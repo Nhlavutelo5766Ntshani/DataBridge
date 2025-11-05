@@ -175,10 +175,11 @@ jobs:
       - name: Send Slack notification (Optional)
         if: ${{ vars.SLACK_WEBHOOK_URL != '' }}
         uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK: ${{ vars.SLACK_WEBHOOK_URL }}
         with:
           status: ${{ job.status }}
           text: 'DAG deployment to Development: ${{ job.status }}'
-          webhook_url: ${{ vars.SLACK_WEBHOOK_URL }}
 
   deploy-to-prod:
     name: Deploy to Production
@@ -226,10 +227,11 @@ jobs:
       - name: Send Slack notification (Optional)
         if: ${{ vars.SLACK_WEBHOOK_URL != '' }}
         uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK: ${{ vars.SLACK_WEBHOOK_URL }}
         with:
           status: ${{ job.status }}
           text: 'DAG deployment to Production: ${{ job.status }}'
-          webhook_url: ${{ vars.SLACK_WEBHOOK_URL }}
 
       - name: Create GitHub Release (Optional)
         if: success()
