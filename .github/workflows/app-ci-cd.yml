@@ -57,13 +57,7 @@ jobs:
           corepack prepare yarn@${{ env.YARN_VERSION }} --activate
 
       - name: Install dependencies
-        run: |
-          set -e
-          # first attempt with immutable install; if it fails, retry with --force so native builds can finish
-          yarn install --immutable --verbose || (
-            echo "Initial yarn install failed - retrying with --force" &&
-            yarn install --force --verbose
-          )
+        run: yarn install --immutable
 
       - name: Rebuild native modules
         run: |
@@ -83,7 +77,7 @@ jobs:
         run: yarn workspace @databridge/web tsc --noEmit
 
       - name: Build web app
-        run: yarn workspace @databridge/web build --verbose
+        run: yarn workspace @databridge/web build
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder' }}
           SKIP_ENV_VALIDATION: true
@@ -118,9 +112,10 @@ jobs:
       - name: Install dependencies
         run: |
           set -e
-          yarn install --immutable --verbose || (
-            echo "Initial yarn install failed - retrying with --force" &&
-            yarn install --force --verbose
+          # Try immutable install first; if it fails retry a normal install so native builds can succeed
+          yarn install --immutable || (
+            echo "Initial yarn install failed - retrying without --immutable" &&
+            yarn install
           )
 
       - name: Rebuild native modules
@@ -197,9 +192,10 @@ jobs:
       - name: Install dependencies
         run: |
           set -e
-          yarn install --immutable --verbose || (
-            echo "Initial yarn install failed - retrying with --force" &&
-            yarn install --force --verbose
+          # Try immutable install first; if it fails retry a normal install so native builds can succeed
+          yarn install --immutable || (
+            echo "Initial yarn install failed - retrying without --immutable" &&
+            yarn install
           )
 
       - name: Rebuild native modules
