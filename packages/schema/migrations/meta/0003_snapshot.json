@@ -1,6 +1,6 @@
 {
-  "id": "ac2e2dde-66bb-455f-8be7-6e0825c0feab",
-  "prevId": "f238d063-bf05-47ff-bb0f-bb2984ee0897",
+  "id": "cc9f8ef6-03f1-4e85-b83b-062e722746cf",
+  "prevId": "ac2e2dde-66bb-455f-8be7-6e0825c0feab",
   "version": "5",
   "dialect": "pg",
   "tables": {
@@ -99,6 +99,143 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
+    },
+    "attachment_migrations": {
+      "name": "attachment_migrations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "execution_id": {
+          "name": "execution_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_id": {
+          "name": "document_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attachment_name": {
+          "name": "attachment_name",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_url": {
+          "name": "source_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "target_url": {
+          "name": "target_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content_type": {
+          "name": "content_type",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "migrated_at": {
+          "name": "migrated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_attachment_migrations_execution": {
+          "name": "idx_attachment_migrations_execution",
+          "columns": [
+            "execution_id"
+          ],
+          "isUnique": false
+        },
+        "idx_attachment_migrations_project": {
+          "name": "idx_attachment_migrations_project",
+          "columns": [
+            "project_id"
+          ],
+          "isUnique": false
+        },
+        "idx_attachment_migrations_status": {
+          "name": "idx_attachment_migrations_status",
+          "columns": [
+            "status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "attachment_migrations_project_id_mapping_projects_id_fk": {
+          "name": "attachment_migrations_project_id_mapping_projects_id_fk",
+          "tableFrom": "attachment_migrations",
+          "tableTo": "mapping_projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_attachment_migration": {
+          "name": "unique_attachment_migration",
+          "nullsNotDistinct": false,
+          "columns": [
+            "execution_id",
+            "document_id",
+            "attachment_name"
+          ]
+        }
+      }
     },
     "column_mappings": {
       "name": "column_mappings",
@@ -348,6 +485,272 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
+    "data_validations": {
+      "name": "data_validations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "execution_id": {
+          "name": "execution_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "table_name": {
+          "name": "table_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "validation_type": {
+          "name": "validation_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expected_value": {
+          "name": "expected_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actual_value": {
+          "name": "actual_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "validated_at": {
+          "name": "validated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_data_validations_execution": {
+          "name": "idx_data_validations_execution",
+          "columns": [
+            "execution_id"
+          ],
+          "isUnique": false
+        },
+        "idx_data_validations_project": {
+          "name": "idx_data_validations_project",
+          "columns": [
+            "project_id"
+          ],
+          "isUnique": false
+        },
+        "idx_data_validations_status": {
+          "name": "idx_data_validations_status",
+          "columns": [
+            "status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "data_validations_project_id_mapping_projects_id_fk": {
+          "name": "data_validations_project_id_mapping_projects_id_fk",
+          "tableFrom": "data_validations",
+          "tableTo": "mapping_projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "etl_execution_stages": {
+      "name": "etl_execution_stages",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "execution_id": {
+          "name": "execution_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stage_id": {
+          "name": "stage_id",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stage_name": {
+          "name": "stage_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "start_time": {
+          "name": "start_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "end_time": {
+          "name": "end_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duration": {
+          "name": "duration",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "records_processed": {
+          "name": "records_processed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "records_failed": {
+          "name": "records_failed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_etl_stages_execution": {
+          "name": "idx_etl_stages_execution",
+          "columns": [
+            "execution_id"
+          ],
+          "isUnique": false
+        },
+        "idx_etl_stages_project": {
+          "name": "idx_etl_stages_project",
+          "columns": [
+            "project_id"
+          ],
+          "isUnique": false
+        },
+        "idx_etl_stages_status": {
+          "name": "idx_etl_stages_status",
+          "columns": [
+            "status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "etl_execution_stages_project_id_mapping_projects_id_fk": {
+          "name": "etl_execution_stages_project_id_mapping_projects_id_fk",
+          "tableFrom": "etl_execution_stages",
+          "tableTo": "mapping_projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_execution_stage": {
+          "name": "unique_execution_stage",
+          "nullsNotDistinct": false,
+          "columns": [
+            "execution_id",
+            "stage_id"
+          ]
+        }
+      }
+    },
     "mapping_projects": {
       "name": "mapping_projects",
       "schema": "",
@@ -403,6 +806,37 @@
           "notNull": true,
           "default": "'draft'"
         },
+        "schedule_enabled": {
+          "name": "schedule_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "schedule_cron": {
+          "name": "schedule_cron",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "schedule_interval": {
+          "name": "schedule_interval",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_execution_time": {
+          "name": "last_execution_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "etl_config": {
+          "name": "etl_config",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -430,6 +864,13 @@
           "name": "mapping_projects_status_idx",
           "columns": [
             "status"
+          ],
+          "isUnique": false
+        },
+        "mapping_projects_schedule_enabled_idx": {
+          "name": "mapping_projects_schedule_enabled_idx",
+          "columns": [
+            "schedule_enabled"
           ],
           "isUnique": false
         }
@@ -612,6 +1053,146 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
+    },
+    "migration_reports": {
+      "name": "migration_reports",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "execution_id": {
+          "name": "execution_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_name": {
+          "name": "project_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_time": {
+          "name": "start_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_time": {
+          "name": "end_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration_ms": {
+          "name": "duration_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "summary": {
+          "name": "summary",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stages": {
+          "name": "stages",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "validations": {
+          "name": "validations",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "table_details": {
+          "name": "table_details",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "errors": {
+          "name": "errors",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "warnings": {
+          "name": "warnings",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_migration_reports_execution": {
+          "name": "idx_migration_reports_execution",
+          "columns": [
+            "execution_id"
+          ],
+          "isUnique": false
+        },
+        "idx_migration_reports_project": {
+          "name": "idx_migration_reports_project",
+          "columns": [
+            "project_id"
+          ],
+          "isUnique": false
+        },
+        "idx_migration_reports_created": {
+          "name": "idx_migration_reports_created",
+          "columns": [
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "migration_reports_project_id_mapping_projects_id_fk": {
+          "name": "migration_reports_project_id_mapping_projects_id_fk",
+          "tableFrom": "migration_reports",
+          "tableTo": "mapping_projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_execution_id": {
+          "name": "unique_execution_id",
+          "nullsNotDistinct": false,
+          "columns": [
+            "execution_id"
+          ]
+        }
+      }
     },
     "pipeline_executions": {
       "name": "pipeline_executions",
