@@ -1,143 +1,167 @@
-# Staging → Production Migration Workflow
+# Multi-Pipeline Migration Workflow
 
 ## Overview
-This guide explains how to use DataBridge for a two-phase migration strategy with data quality controls.
 
-## Architecture: Two-Project Pipeline
+DataBridge's multi-pipeline architecture enables complex migrations with sequential ETL stages. This guide explains how to use multi-pipeline projects for staging-to-production workflows with data quality controls.
 
-### Phase 1: Source → Staging (Raw Data Load)
-**Purpose:** Load raw data into staging schema for validation and transformation
+## Architecture: Single Project, Multiple Pipelines
 
-**Project Configuration:**
-- **Name:** `Source_To_Staging_Migration`
-- **Source Connection:** Your source database
-- **Target Connection:** Your target database (staging schema)
+Unlike the old two-project approach, DataBridge now supports **multiple pipelines within a single project**:
 
-**Mapping Strategy:**
 ```
-Source Database                → Target Database (Staging)
-─────────────────────────────────────────────────────────
-SourceDB.dbo.Employees         → TargetDB.staging.Employees
-SourceDB.dbo.Orders            → TargetDB.staging.Orders
-SourceDB.dbo.Products          → TargetDB.staging.Products
+Single Project: "Customer Data Migration"
+├── Pipeline 1: Source → Staging (Raw Load)
+├── Pipeline 2: Staging → Production (Transformation)
+└── Pipeline 3: Production → Analytics (Aggregation)
 ```
 
-**Transformations:** Minimal
-- Type conversions only (if required)
-- No business logic
-- Fast bulk load
+### Benefits of Multi-Pipeline Architecture
 
-**Benefits:**
-- ✅ Preserve raw source data
-- ✅ Quick initial load
-- ✅ Audit trail of source data
-- ✅ Can re-process if needed
+- ✅ **Unified Management**: All pipelines in one project
+- ✅ **Sequential Execution**: Pipelines run in order automatically
+- ✅ **Dependency Management**: Pipeline 2 waits for Pipeline 1
+- ✅ **Granular Monitoring**: Track each pipeline separately
+- ✅ **Airflow Integration**: Single DAG orchestrates all pipelines
+- ✅ **Flexible Scheduling**: Schedule the entire project or individual pipelines
 
----
+## Common Migration Patterns
 
-### Phase 2: Staging → Production (Transformation + Quality)
-**Purpose:** Apply transformations, validation, and business rules
+### Pattern 1: Source → Staging → Production
 
-**Project Configuration:**
-- **Name:** `Staging_To_Production_Migration`
-- **Source Connection:** Your target database (staging schema)
-- **Target Connection:** Your target database (production schema)
-
-**Mapping Strategy:**
 ```
-Target Database (Staging)            → Target Database (Production)
-───────────────────────────────────────────────────────────────────
-TargetDB.staging.Employees           → TargetDB.dbo.Employees
-TargetDB.staging.Orders              → TargetDB.dbo.Orders_Clean
-TargetDB.staging.Products            → TargetDB.dbo.Products_Validated
-
-# Data Breakout Example:
-TargetDB.staging.Employees           → TargetDB.dbo.Employee_Basic_Info
-                                     → TargetDB.dbo.Employee_Contact
-                                     → TargetDB.dbo.Employee_Salary
+┌─────────────────────────────────────────────────────────┐
+│  Pipeline 1: Raw Data Load                              │
+│  Source DB → Staging Schema                             │
+│  - Minimal transformations                              │
+│  - Fast bulk load                                       │
+│  - Preserve raw data                                    │
+└──────────────────┬──────────────────────────────────────┘
+                   ▼
+┌─────────────────────────────────────────────────────────┐
+│  Pipeline 2: Transformation & Quality                   │
+│  Staging Schema → Production Schema                     │
+│  - Data cleansing                                       │
+│  - Type conversions                                     │
+│  - Business rules                                       │
+│  - Validation                                           │
+└─────────────────────────────────────────────────────────┘
 ```
 
-**Transformations:** Full Suite
-- ✅ Type conversions
-- ✅ Custom SQL expressions
-- ✅ Data cleansing (TRIM, UPPER, etc.)
-- ✅ Date format standardization
-- ✅ Default values for missing data
-- ✅ Column exclusions
-- ✅ Derived/calculated columns
+### Pattern 2: Multi-Environment Migration
 
----
+```
+Pipeline 1: Source → Dev DB
+Pipeline 2: Dev DB → QA DB
+Pipeline 3: QA DB → Prod DB
+```
 
-## Step-by-Step Workflow
+### Pattern 3: Data Breakout (Normalization)
 
-### 1. Create Source → Staging Project
+```
+Pipeline 1: Source → Staging
+Pipeline 2: Staging → Production Tables (1:N)
+  - staging.Employees → dbo.Employees_Basic
+  - staging.Employees → dbo.Employees_Contact
+  - staging.Employees → dbo.Employees_Salary
+```
+
+## Step-by-Step Guide
+
+### 1. Create a Multi-Pipeline Project
 
 1. Navigate to **Projects** → **New Project**
-2. Fill in details:
-   - **Name:** `Source_To_Staging_Migration`
-   - **Source Connection:** Select your source database
-   - **Target Connection:** Select target database (with staging schema)
+2. Fill in project details:
+   - **Name:** `Customer Data Migration`
+   - **Description:** `Multi-stage migration with staging layer`
+   - **Migration Strategy:** Select **"Multi-Pipeline"**
+   - **Source Connection:** Leave blank (set per pipeline)
+   - **Target Connection:** Leave blank (set per pipeline)
 3. Click **Create Project**
 
-### 2. Map Tables (Phase 1)
+**Note:** For multi-pipeline projects, connections are configured at the pipeline level, not the project level.
+
+---
+
+### 2. Create Pipeline 1: Source → Staging
+
+1. Go to your project → **Pipelines** tab
+2. Click **"Add Pipeline"**
+3. Fill in pipeline details:
+   - **Name:** `Source to Staging`
+   - **Description:** `Raw data load from source to staging`
+   - **Order:** `1` (executes first)
+   - **Source Connection:** Select source database
+   - **Target Connection:** Select target database (staging schema)
+   - **Depends On:** Leave blank (first pipeline)
+4. Click **Create Pipeline**
+
+---
+
+### 3. Map Tables for Pipeline 1 (Raw Load)
+
+1. Click **"Configure Mapping"** on Pipeline 1
+2. Follow the 4-step wizard:
 
 **Step 1: Table Selection**
 - Source: Select tables from source database
 - Target: Select corresponding tables in `staging` schema
 - Example: `dbo.Employees` → `staging.Employees`
+- Click **"Map Selected Tables"**
 
 **Step 2: Column Mapping**
-- Use **Auto-Map Columns** for initial mapping
-- Apply minimal transformations (type conversion only if needed)
-- Click **Continue**
+- Interactive click-to-map interface
+- Apply minimal transformations:
+  - Type conversions only (if required)
+  - No business logic at this stage
+- Click **"Continue"**
 
 **Step 3: Preview**
-- Review sample data transformation
+- Review sample data
 - Check for data type issues
-- Click **Continue**
+- Verify row counts
+- Click **"Continue"**
 
-**Step 4: Execute**
-- Click **Start Migration**
-- Monitor progress in real-time
-- Wait for completion
+**Step 4: Save Mapping**
+- Click **"Save Mapping"**
+- Returns to pipelines page
 
-### 3. Validate Staging Data
+**Transformation Strategy for Pipeline 1:**
+- ✅ Type conversions only (if required)
+- ❌ No data cleansing
+- ❌ No business logic
+- ❌ Fast bulk load
 
-Before proceeding to Phase 2, validate your staging data:
+---
 
-```sql
--- Check row counts
-SELECT 'Employees' AS TableName, COUNT(*) AS RowCount 
-FROM staging.Employees
-UNION ALL
-SELECT 'Orders', COUNT(*) FROM staging.Orders;
+### 4. Create Pipeline 2: Staging → Production
 
--- Check for nulls in critical columns
-SELECT COUNT(*) AS NullEmails 
-FROM staging.Employees 
-WHERE Email IS NULL;
+1. Click **"Add Pipeline"** again
+2. Fill in pipeline details:
+   - **Name:** `Staging to Production`
+   - **Description:** `Transform and cleanse data for production`
+   - **Order:** `2` (executes after Pipeline 1)
+   - **Source Connection:** Select target database (staging schema)
+   - **Target Connection:** Select target database (production schema)
+   - **Depends On:** Select **"Source to Staging"** (Pipeline 1)
+3. Click **Create Pipeline**
 
--- Check data quality
-SELECT * FROM staging.Employees 
-WHERE Email NOT LIKE '%@%' 
-LIMIT 10;
-```
+**Dependency Management:**
+- Pipeline 2 will only execute after Pipeline 1 completes successfully
+- If Pipeline 1 fails, Pipeline 2 will not run
+- Airflow DAG enforces this dependency
 
-### 4. Create Staging → Production Project
+---
 
-1. Navigate to **Projects** → **New Project**
-2. Fill in details:
-   - **Name:** `Staging_To_Production_Migration`
-   - **Source Connection:** Target database (staging schema)
-   - **Target Connection:** Target database (production schema)
-3. Click **Create Project**
+### 5. Map Tables for Pipeline 2 (Transformation)
 
-### 5. Map Tables with Transformations (Phase 2)
+1. Click **"Configure Mapping"** on Pipeline 2
+2. Follow the 4-step wizard:
 
 **Step 1: Table Selection**
 - Source: Select tables from `staging` schema
 - Target: Select corresponding tables in `dbo` (production) schema
 - Supports one-to-many mapping for data breakout
+- Example: `staging.Employees` → `dbo.Employees`, `dbo.Employee_Details`
 
 **Step 2: Column Mapping with Transformations**
 

@@ -17,19 +17,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PATHS } from "@/lib/constants/paths";
+import { signupAction } from "@/lib/actions/auth";
 
 const SignupPage = () => {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+
+    const formData = new FormData(e.currentTarget);
+    const password = formData.get("password") as string;
+    const confirmPassword = formData.get("confirmPassword") as string;
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -44,7 +45,16 @@ const SignupPage = () => {
     setIsLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const result = await signupAction(formData);
+      
+      if (!result.success) {
+        const errorMessage = Array.isArray(result.error) 
+          ? result.error.join(", ") 
+          : result.error || "Failed to create account";
+        setError(errorMessage);
+        return;
+      }
+
       router.push(PATHS.DASHBOARD.HOME);
     } catch {
       setError("Failed to create account. Please try again.");
@@ -70,10 +80,9 @@ const SignupPage = () => {
             <Label htmlFor="name">Full Name</Label>
             <Input
               id="name"
+              name="name"
               type="text"
               placeholder="John Doe"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
               required
               disabled={isLoading}
             />
@@ -82,10 +91,9 @@ const SignupPage = () => {
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
+              name="email"
               type="email"
               placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               required
               disabled={isLoading}
             />
@@ -94,24 +102,24 @@ const SignupPage = () => {
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
+              name="password"
               type="password"
               placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               required
               disabled={isLoading}
+              minLength={8}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
             <Input
               id="confirmPassword"
+              name="confirmPassword"
               type="password"
               placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
               required
               disabled={isLoading}
+              minLength={8}
             />
           </div>
         </CardContent>

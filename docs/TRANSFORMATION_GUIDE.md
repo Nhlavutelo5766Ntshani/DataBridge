@@ -2,100 +2,243 @@
 
 ## Overview
 
-DataBridge supports comprehensive data transformations during migration, including type conversion, custom SQL expressions, column exclusion, and more.
+DataBridge supports comprehensive data transformations during migration through a wizard-based interface. This guide explains the 4-step wizard process and available transformation types.
 
----
+## 🧙 Wizard-Based Mapping Interface
 
-## 🎯 How to Apply Transformations
+The mapping interface uses a 4-step wizard that guides you through the entire migration process:
 
-### **Step 1: Generate Auto-Mappings**
-
-1. Navigate to your project's mapping page: `/projects/{id}/mapping`
-2. Click **"Auto Generate Mappings"** button (top right)
-3. Wait for the system to:
-   - Match tables by name similarity (70% confidence)
-   - Match columns by name + data type
-   - Create table & column mappings
-   - Save to database
-
-**Result:** You'll see a toast notification showing how many mappings were created.
-
----
-
-### **Step 2: View & Edit Mappings**
-
-After auto-mapping, the **"Current Mappings"** panel (right sidebar) displays:
-
-- 📊 **Table Mappings**: Source → Target table pairs
-- 🔗 **Column Mappings**: Individual column connections
-- 🏷️ **Transformation Badges**: Shows if transformations are applied
-
----
-
-### **Step 3: Add Transformations to Columns**
-
-1. In the "Current Mappings" panel, find the column mapping
-2. Click the **Edit (✏️)** button next to the column
-3. A dialog opens with transformation options:
-
-#### **Available Transformation Types:**
-
-**1. Type Conversion**
-- Convert data types (e.g., `VARCHAR` → `INT`, `BOOLEAN` → `BIT`)
-- Example: `VARCHAR(255)`, `INT`, `BIGINT`, `DATETIME2`
-
-**2. Custom SQL**
-- Write custom SQL expressions
-- Use `{column}` as placeholder for source column
-- Example: `CONCAT({column}, '_suffix')`, `UPPER({column})`
-
-**3. Exclude Column**
-- Skip this column during migration
-- Column will not be transferred to target
-
-**4. Default Value**
-- Set fallback value for NULL/empty cells
-- Example: `0`, `'N/A'`, `GETDATE()`
-
-**5. Uppercase / Lowercase**
-- Convert text case automatically
-
-**6. Trim**
-- Remove leading/trailing whitespace
-
-**7. Date Format**
-- Format date/time values (coming soon)
-
----
-
-### **Step 4: Preview Migration**
-
-Before executing, click **"Preview Migration"** to see:
-- ✅ Sample data (10 rows)
-- ✅ Before/after transformation
-- ✅ Warnings about unmapped columns
-- ✅ Total row count estimates
-
-**Example Preview:**
-```json
-Source: { "customer_id": "123", "is_active": "true" }
-Target: { "CustomerID": 123, "IsActive": 1 }
+```
+Step 1: Table Selection → Step 2: Column Mapping → Step 3: Preview → Step 4: Execution
 ```
 
+## 📋 Step-by-Step Guide
+
+### **Step 1: Table Selection**
+
+1. Navigate to your project's mapping page: `/projects/{id}/mapping`
+2. **Select source tables** from the left panel
+3. **Select target tables** from the right panel
+4. **Map tables** by:
+   - Click a source table
+   - Click one or more target tables (supports one-to-many mapping)
+   - Click **"Map Selected Tables"**
+
+**Features:**
+- Schema-qualified names displayed (e.g., `dbo.Users`, `staging.Customers`)
+- One source table can map to multiple target tables
+- Visual indication of mapped tables
+- Click **"Continue"** to proceed to column mapping
+
 ---
 
-### **Step 5: Execute Migration**
+### **Step 2: Interactive Column Mapping**
 
-1. Click **"Execute Migration"** button
-2. Migration runs in background (BullMQ queue)
-3. You're redirected to `/migrations/{executionId}` to monitor progress
+This step uses an **interactive click-to-map interface**:
+
+1. **Select a table mapping** from the dropdown
+2. **Click a source column** (highlighted in cyan)
+3. **Click a target column** (highlighted in teal)
+4. **Click "Map"** button to create the mapping
+
+**Adding Transformations:**
+1. Find the column mapping in the list
+2. Click the **"Transform"** button
+3. A dialog opens with transformation options (see below)
+
+**Features:**
+- Visual feedback with highlighted selections
+- Real-time mapping list updates
+- Edit or delete existing mappings
+- Data type display for each column
+- Clear instruction callout
+
+---
+
+### **Step 3: Preview Migration**
+
+Before executing, preview the results:
+
+- ✅ **Sample Data**: Shows 10 sample rows from source
+- ✅ **Transformation Preview**: See how data will be transformed
+- ✅ **Warnings**: Alerts for unmapped columns or data type issues
+- ✅ **Row Counts**: Estimated number of records to migrate
+
+**Example Preview:**
+```
+Source: { "customer_id": "123", "is_active": "true", "email": " USER@EXAMPLE.COM " }
+Target: { "CustomerID": 123, "IsActive": 1, "Email": "user@example.com" }
+         ↑ Type conversion   ↑ Custom SQL      ↑ Trim + Lowercase
+```
+
+Click **"Continue"** to proceed to execution.
+
+---
+
+### **Step 4: Execute Migration**
+
+1. Review final summary
+2. Click **"Start Migration"** button
+3. Migration executes in real-time
+4. View progress:
+   - Records processed counter
+   - Progress bar (0-100%)
+   - Real-time logs
+   - Error tracking
 
 **What happens:**
-- ✅ Processes in batches (1000 rows/batch)
-- ✅ Applies transformations in real-time
-- ✅ Tracks progress (0-100%)
+- ✅ Processes in batches (configurable batch size)
+- ✅ Applies all transformations in real-time
+- ✅ Tracks progress continuously
 - ✅ Records errors for failed rows
-- ✅ Updates `migrationExecutions` table
+- ✅ Updates execution status
+
+---
+
+## 🛠️ Available Transformations
+
+### **1. Type Conversion**
+
+Convert data types between databases.
+
+**Example:**
+- Source: `VARCHAR("123")`
+- Transformation: Convert to `INT`
+- Target: `123` (integer)
+
+**Use Cases:**
+- SQL Server `BIT` → PostgreSQL `BOOLEAN`
+- String IDs → Integer IDs
+- `DATETIME2` → `TIMESTAMP`
+
+**How to Apply:**
+1. Click "Transform" on a column mapping
+2. Select "Type Conversion"
+3. Choose target data type from dropdown
+4. Click "Save"
+
+---
+
+### **2. Custom SQL**
+
+Write custom SQL expressions for complex transformations.
+
+**Syntax:**
+- Use `{column}` as placeholder for source column value
+- Standard SQL functions supported
+
+**Examples:**
+```sql
+-- Email normalization
+LOWER(TRIM({column}))
+
+-- Full name concatenation
+CONCAT(TRIM(FirstName), ' ', TRIM(LastName))
+
+-- Phone formatting
+REPLACE(REPLACE(REPLACE({column}, '-', ''), '(', ''), ')', '')
+
+-- Conditional logic
+CASE WHEN {column} = 'Y' THEN 1 ELSE 0 END
+
+-- Date manipulation
+DATEADD(year, 1, {column})
+```
+
+**How to Apply:**
+1. Click "Transform" on a column mapping
+2. Select "Custom SQL"
+3. Enter SQL expression
+4. Use `{column}` placeholder
+5. Click "Save"
+
+---
+
+### **3. Default Value**
+
+Set fallback value for NULL or empty cells.
+
+**Examples:**
+- Numeric: `0`, `-1`
+- Text: `'N/A'`, `'Unknown'`
+- Boolean: `TRUE`, `FALSE`
+- Date: `CURRENT_TIMESTAMP`, `'1900-01-01'`
+
+**How to Apply:**
+1. Click "Transform" on a column mapping
+2. Select "Default Value"
+3. Enter default value
+4. Click "Save"
+
+---
+
+### **4. String Operations**
+
+**Uppercase:**
+- Converts all text to uppercase
+- Example: `"john doe"` → `"JOHN DOE"`
+
+**Lowercase:**
+- Converts all text to lowercase
+- Example: `"JOHN DOE"` → `"john doe"`
+
+**Trim:**
+- Removes leading and trailing whitespace
+- Example: `" hello "` → `"hello"`
+
+**How to Apply:**
+1. Click "Transform" on a column mapping
+2. Select "Uppercase", "Lowercase", or "Trim"
+3. Click "Save"
+
+---
+
+### **5. Exclude Column**
+
+Skip a column entirely during migration.
+
+**Use Cases:**
+- Legacy fields no longer needed
+- Sensitive data that shouldn't migrate
+- Columns with too many errors
+
+**How to Apply:**
+1. Click "Transform" on a column mapping
+2. Select "Exclude Column"
+3. Click "Save"
+
+---
+
+### **6. Date Format** (Future Enhancement)
+
+Standardize date and time formats.
+
+**Planned Features:**
+- Convert to ISO 8601 format
+- Add/remove timezone information
+- Change date format (MM/DD/YYYY → YYYY-MM-DD)
+
+---
+
+## 🔄 Combined Transformations
+
+You can apply multiple transformations by using Custom SQL:
+
+```sql
+-- Trim + Lowercase + Default
+COALESCE(LOWER(TRIM({column})), 'unknown')
+
+-- Type conversion + Validation
+CAST(
+  CASE 
+    WHEN {column} ~ '^[0-9]+$' THEN {column}
+    ELSE '0'
+  END AS INTEGER
+)
+
+-- String manipulation + Concatenation
+CONCAT(UPPER(LEFT({column}, 1)), LOWER(SUBSTRING({column}, 2)))
+```
 
 ---
 
