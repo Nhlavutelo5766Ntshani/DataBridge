@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS "schedules" (
 	"metadata" jsonb DEFAULT '{}'
 );
 --> statement-breakpoint
+ALTER TABLE "table_mappings" ADD COLUMN IF NOT EXISTS "pipeline_id" uuid;--> statement-breakpoint
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "password_hash" text;--> statement-breakpoint
 UPDATE "users" SET "password_hash" = '' WHERE "password_hash" IS NULL;--> statement-breakpoint
 ALTER TABLE "users" ALTER COLUMN "password_hash" SET NOT NULL;--> statement-breakpoint
