@@ -1,7 +1,0 @@
-{
-  "buildCommand": "cd ../.. && yarn install && yarn workspace @databridge/schema build && cd apps/web && yarn build",
-  "devCommand": "yarn dev",
-  "framework": null,
-  "outputDirectory": ".next"
-}
-
