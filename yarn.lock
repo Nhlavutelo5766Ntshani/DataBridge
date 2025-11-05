@@ -438,7 +438,7 @@ __metadata:
     "@types/node": "npm:^20.11.0"
     dotenv: "npm:^17.2.3"
     drizzle-kit: "npm:^0.20.9"
-    drizzle-orm: "npm:^0.29.3"
+    drizzle-orm: "npm:0.29.5"
     drizzle-zod: "npm:^0.5.1"
     postgres: "npm:^3.4.3"
     tsup: "npm:^8.0.1"
@@ -487,8 +487,8 @@ __metadata:
     bullmq: "npm:^5.63.0"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
-    drizzle-orm: "npm:^0.29.3"
-    drizzle-zod: "npm:^0.5.1"
+    drizzle-orm: "npm:0.29.5"
+    drizzle-zod: "npm:0.5.1"
     eslint: "npm:^9"
     eslint-config-next: "npm:^15.0.0"
     file-saver: "npm:^2.0.5"
@@ -5187,7 +5187,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"drizzle-orm@npm:^0.29.3":
+"drizzle-orm@npm:0.29.5":
   version: 0.29.5
   resolution: "drizzle-orm@npm:0.29.5"
   peerDependencies:
@@ -5262,7 +5262,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"drizzle-zod@npm:^0.5.1":
+"drizzle-zod@npm:0.5.1, drizzle-zod@npm:^0.5.1":
   version: 0.5.1
   resolution: "drizzle-zod@npm:0.5.1"
   peerDependencies:

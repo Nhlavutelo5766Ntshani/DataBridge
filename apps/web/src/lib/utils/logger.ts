@@ -166,7 +166,6 @@ class Logger {
 
     if (meta && Object.keys(meta).length > 0) {
       const metaFormatted = this.formatMeta(meta);
-      // Use console.error for errors to show in red in terminal
       if (level === "error") {
         console.error(`${header} ${body}`);
         console.error(`${colors.dim}${metaFormatted}${colors.reset}`);
