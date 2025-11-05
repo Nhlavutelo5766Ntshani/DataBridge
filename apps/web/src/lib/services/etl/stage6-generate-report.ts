@@ -37,27 +37,8 @@ export async function generateMigrationReport(
     // 7. Save report to database
     // 8. (Optional) Export to file formats
 
-    const report: Partial<MigrationReport> = {
-      executionId,
-      projectId,
-      projectName: "",
-      startTime: new Date(),
-      endTime: new Date(),
-      duration: 0,
-      summary: {
-        totalTables: 0,
-        totalRecords: 0,
-        successfulRecords: 0,
-        failedRecords: 0,
-        attachmentsMigrated: 0,
-        attachmentsFailed: 0,
-      },
-      stages: [],
-      validations: [],
-      tableDetails: [],
-      errors: [],
-      warnings: [],
-    };
+    // TODO: Generate actual report from execution data
+    // const report: Partial<MigrationReport> = { ... }
 
     const duration = Date.now() - startTime;
 

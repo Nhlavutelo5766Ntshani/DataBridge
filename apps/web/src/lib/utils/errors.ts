@@ -60,6 +60,7 @@ export function createErrorResponse<T>(
 
     // Log error for better visibility in development
     if (typeof window === "undefined") {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { logger } = require("./logger");
       logger.error(`[${context}] ${error.message}`, {
         code: errorCode,
@@ -77,6 +78,7 @@ export function createErrorResponse<T>(
 
   // Log non-Error objects
   if (typeof window === "undefined") {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { logger } = require("./logger");
     logger.error(`[${context}] Unknown error`, { error: String(error) });
   }
@@ -101,6 +103,7 @@ export function createSuccessResponse<T>(
 ): QueryResponse<T> {
   // Log success in development for better visibility
   if (context && typeof window === "undefined") {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { logger } = require("./logger");
     const dataPreview =
       typeof data === "object" && data !== null

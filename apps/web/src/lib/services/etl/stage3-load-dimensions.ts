@@ -18,7 +18,7 @@ import { logger } from "@/lib/utils/logger";
 export async function loadDimensions(
   projectId: string,
   executionId: string,
-  config: ETLPipelineConfig
+  _config: ETLPipelineConfig
 ): Promise<StageResult> {
   const startTime = Date.now();
 
