@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "yarn workspace @databridge/schema build",
-    "build": "next build",
+    "build": "yarn workspace @databridge/schema build && next build",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
