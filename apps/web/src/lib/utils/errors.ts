@@ -42,13 +42,13 @@ function categorizeError(errorMessage: string): ErrorCode {
 }
 
 /**
- * Creates a standardized error response
+ * Creates a standardized error response with automatic logging
  * @param context - The context where the error occurred
  * @param error - The error object
  * @returns A standardized QueryResponse with error details
  */
 export function createErrorResponse<T>(
-  _context: string,
+  context: string,
   error: unknown
 ): QueryResponse<T> {
   const isDevelopment =
@@ -58,12 +58,29 @@ export function createErrorResponse<T>(
     const errorCode = categorizeError(error.message);
     const userMessage = ERROR_MESSAGES[errorCode];
 
+    // Log error for better visibility in development
+    if (typeof window === "undefined") {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { logger } = require("./logger");
+      logger.error(`[${context}] ${error.message}`, {
+        code: errorCode,
+        stack: error.stack?.split("\n").slice(0, 5).join("\n"),
+      });
+    }
+
     return {
       success: false,
       data: null,
       error: isDevelopment ? error.message : userMessage,
       code: errorCode,
     };
+  }
+
+  // Log non-Error objects
+  if (typeof window === "undefined") {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { logger } = require("./logger");
+    logger.error(`[${context}] Unknown error`, { error: String(error) });
   }
 
   return {
@@ -75,11 +92,30 @@ export function createErrorResponse<T>(
 }
 
 /**
- * Creates a success response
+ * Creates a success response with optional logging
  * @param data - The data to return
+ * @param context - Optional context for logging
  * @returns A standardized QueryResponse with success status
  */
-export function createSuccessResponse<T>(data: T): QueryResponse<T> {
+export function createSuccessResponse<T>(
+  data: T,
+  context?: string
+): QueryResponse<T> {
+  // Log success in development for better visibility
+  if (context && typeof window === "undefined") {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { logger } = require("./logger");
+    const dataPreview =
+      typeof data === "object" && data !== null
+        ? Object.keys(data as object).length > 0
+          ? `(${Object.keys(data as object).length} fields)`
+          : "(empty)"
+        : String(data);
+    logger.success(`[${context}] Operation successful`, {
+      data: dataPreview,
+    });
+  }
+
   return {
     success: true,
     data,
