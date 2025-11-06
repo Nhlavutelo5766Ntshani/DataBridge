@@ -103,3 +103,110 @@ export async function deleteProject(
   return deletedProject;
 }
 
+/**
+ * Update project ETL configuration
+ * @param projectId - Project ID
+ * @param etlConfig - ETL configuration object
+ * @returns The updated project
+ */
+export async function updateProjectETLConfig(
+  projectId: string,
+  etlConfig: Record<string, unknown>
+): Promise<MappingProject> {
+  const [updatedProject] = await db
+    .update(mappingProjects)
+    .set({ etlConfig, updatedAt: new Date() })
+    .where(eq(mappingProjects.id, projectId))
+    .returning();
+
+  if (!updatedProject) {
+    throw new Error("Project not found or could not be updated");
+  }
+
+  return updatedProject;
+}
+
+/**
+ * Update project scheduling configuration
+ * @param projectId - Project ID
+ * @param scheduleConfig - Schedule configuration
+ * @returns The updated project
+ */
+export async function updateProjectSchedule(
+  projectId: string,
+  scheduleConfig: {
+    scheduleEnabled?: boolean;
+    scheduleCron?: string | null;
+    scheduleInterval?: number | null;
+  }
+): Promise<MappingProject> {
+  const [updatedProject] = await db
+    .update(mappingProjects)
+    .set({ ...scheduleConfig, updatedAt: new Date() })
+    .where(eq(mappingProjects.id, projectId))
+    .returning();
+
+  if (!updatedProject) {
+    throw new Error("Project not found or could not be updated");
+  }
+
+  return updatedProject;
+}
+
+/**
+ * Update project last execution time
+ * @param projectId - Project ID
+ * @param executionTime - Execution timestamp
+ * @returns The updated project
+ */
+export async function updateProjectLastExecution(
+  projectId: string,
+  executionTime: Date
+): Promise<MappingProject> {
+  const [updatedProject] = await db
+    .update(mappingProjects)
+    .set({ lastExecutionTime: executionTime, updatedAt: new Date() })
+    .where(eq(mappingProjects.id, projectId))
+    .returning();
+
+  if (!updatedProject) {
+    throw new Error("Project not found or could not be updated");
+  }
+
+  return updatedProject;
+}
+
+/**
+ * Get projects with scheduling enabled
+ * @returns Array of scheduled projects
+ */
+export async function getScheduledProjects(): Promise<MappingProject[]> {
+  const scheduledProjects = await db.query.mappingProjects.findMany({
+    where: eq(mappingProjects.scheduleEnabled, true),
+    orderBy: [desc(mappingProjects.lastExecutionTime)],
+  });
+
+  return scheduledProjects;
+}
+
+/**
+ * Get projects due for execution based on schedule
+ * @returns Array of projects that need to be executed
+ */
+export async function getDueProjects(): Promise<MappingProject[]> {
+  const now = new Date();
+  const scheduledProjects = await getScheduledProjects();
+
+  return scheduledProjects.filter((project) => {
+    if (!project.scheduleInterval) return false;
+    
+    if (!project.lastExecutionTime) return true; // Never executed
+
+    const nextRunTime = new Date(
+      project.lastExecutionTime.getTime() + project.scheduleInterval * 1000
+    );
+
+    return nextRunTime <= now;
+  });
+}
+

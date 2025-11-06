@@ -7,6 +7,7 @@ import { loadDimensions } from "@/lib/services/etl/stage3-load-dimensions";
 import { loadFacts } from "@/lib/services/etl/stage4-load-facts";
 import { validateData } from "@/lib/services/etl/stage5-validate";
 import { generateMigrationReport } from "@/lib/services/etl/stage6-generate-report";
+import { updateExecutionStageByIds } from "@/db/queries/etl-executions";
 
 /**
  * Redis connection configuration
@@ -43,8 +44,12 @@ async function processETLJob(job: Job<ETLJobData>) {
     stage,
   });
 
-  // Update job progress
   await job.updateProgress(10);
+
+  await updateExecutionStageByIds(executionId, stage, {
+    status: "running",
+    startTime: new Date(),
+  });
 
   try {
     let result;
@@ -81,8 +86,26 @@ async function processETLJob(job: Job<ETLJobData>) {
     await job.updateProgress(100);
 
     if (!result.success) {
+      await updateExecutionStageByIds(executionId, stage, {
+        status: "failed",
+        endTime: new Date(),
+        duration: result.duration,
+        recordsProcessed: result.recordsProcessed,
+        recordsFailed: result.recordsFailed,
+        errorMessage: result.error,
+      });
+
       throw new Error(result.error || `Stage ${stage} failed`);
     }
+
+    await updateExecutionStageByIds(executionId, stage, {
+      status: "completed",
+      endTime: new Date(),
+      duration: result.duration,
+      recordsProcessed: result.recordsProcessed,
+      recordsFailed: result.recordsFailed,
+      metadata: result.metadata,
+    });
 
     logger.success(`ETL job completed`, {
       jobId: job.id,
@@ -93,6 +116,12 @@ async function processETLJob(job: Job<ETLJobData>) {
 
     return result;
   } catch (error) {
+    await updateExecutionStageByIds(executionId, stage, {
+      status: "failed",
+      endTime: new Date(),
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
+
     logger.error(`ETL job failed`, {
       jobId: job.id,
       stage,
@@ -167,7 +196,6 @@ export function initializeWorker(): void {
     limiter: etlWorker.opts.limiter,
   });
 
-  // Handle process termination
   process.on("SIGTERM", async () => {
     await shutdownWorker();
     process.exit(0);

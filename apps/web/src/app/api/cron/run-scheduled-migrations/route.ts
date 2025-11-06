@@ -1,139 +1,124 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getScheduledProjects } from "@/db/queries/projects";
+import { updateProjectLastExecution } from "@/db/queries/projects";
+import { initializeExecutionStages } from "@/lib/actions/etl-executions";
 import { queueCompletePipeline } from "@/lib/queue/etl-queue";
 import type { ETLPipelineConfig } from "@/lib/types/etl";
 import { logger } from "@/lib/utils/logger";
 
 /**
  * GET /api/cron/run-scheduled-migrations
- * Vercel Cron Job handler for scheduled ETL executions
+ * Vercel Cron job to run scheduled migrations
  * 
- * This endpoint is called by Vercel Cron at scheduled intervals
- * to check for and execute pending migrations.
- * 
- * Security: Protected by CRON_SECRET environment variable
+ * Requires CRON_SECRET environment variable for authentication
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verify cron secret for security
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
 
     if (!cronSecret) {
-      logger.error(`CRON_SECRET environment variable not set`);
+      logger.error("CRON_SECRET environment variable not set");
       return NextResponse.json(
-        { error: "Cron configuration error" },
+        { error: "Cron secret not configured" },
         { status: 500 }
       );
     }
 
     if (authHeader !== `Bearer ${cronSecret}`) {
-      logger.warn(`Unauthorized cron job attempt`);
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      logger.warn("Unauthorized cron job attempt");
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    logger.info(`Cron job triggered - checking for scheduled migrations`);
+    logger.info("Running scheduled migrations check");
 
-    // TODO: Query database for projects with scheduled migrations
-    // For now, this is a placeholder implementation
+    const scheduledProjects = await getScheduledProjects();
 
-    const now = new Date();
-    const scheduledProjects: Array<{
-      projectId: string;
-      projectName: string;
-      schedule: string;
-      config: ETLPipelineConfig;
-    }> = [];
-
-    // TODO: Implement database query:
-    // SELECT * FROM projects
-    // WHERE schedule_enabled = true
-    //   AND (
-    //     last_execution_time IS NULL
-    //     OR last_execution_time + schedule_interval <= NOW()
-    //   )
-
-    if (scheduledProjects.length === 0) {
-      logger.info(`No scheduled migrations found`);
+    if (!scheduledProjects || scheduledProjects.length === 0) {
+      logger.info("No scheduled projects found");
       return NextResponse.json({
         success: true,
-        message: "No scheduled migrations to run",
-        count: 0,
+        message: "No scheduled projects to run",
+        projectsTriggered: 0,
       });
     }
 
-    logger.info(`Found ${scheduledProjects.length} scheduled migration(s)`);
+    logger.info(`Found ${scheduledProjects.length} scheduled projects`);
 
-    // Queue executions for all scheduled projects
-    const results = await Promise.allSettled(
-      scheduledProjects.map(async (project) => {
-        const executionId = `exec-${project.projectId}-${now.getTime()}`;
+    const now = Date.now();
+    const triggeredProjects: string[] = [];
 
-        logger.info(`Queueing scheduled migration`, {
-          projectId: project.projectId,
-          projectName: project.projectName,
-          executionId,
+    for (const project of scheduledProjects) {
+      try {
+        const shouldRun = shouldRunMigration(
+          project.lastExecutionTime,
+          project.scheduleInterval
+        );
+
+        if (!shouldRun) {
+          logger.debug(`Skipping project (not due yet)`, {
+            projectId: project.id,
+            projectName: project.name,
+          });
+          continue;
+        }
+
+        logger.info(`Triggering scheduled migration`, {
+          projectId: project.id,
+          projectName: project.name,
         });
 
-        try {
-          const jobIds = await queueCompletePipeline(
-            project.projectId,
-            executionId,
-            project.config
-          );
+        const executionId = `exec-${project.id}-${now}`;
 
-          // TODO: Update database with execution details
-          // INSERT INTO executions (id, project_id, status, created_at)
-          // VALUES (executionId, projectId, 'queued', NOW())
+        const etlConfig = (project.etlConfig as unknown as ETLPipelineConfig) || {
+          projectId: project.id,
+          executionId,
+          batchSize: 1000,
+          parallelism: 2,
+          errorHandling: "continue-on-error",
+          validateData: true,
+          staging: {
+            databaseUrl: process.env.STAGING_DATABASE_URL || process.env.DATABASE_URL || "",
+            schemaName: "staging",
+            tablePrefix: "stg_",
+            cleanupAfterMigration: false,
+          },
+          retryAttempts: 3,
+          retryDelayMs: 5000,
+        };
 
-          // UPDATE projects
-          // SET last_execution_time = NOW()
-          // WHERE id = projectId
+        await initializeExecutionStages(project.id, executionId);
 
-          return {
-            projectId: project.projectId,
-            executionId,
-            jobIds,
-            success: true,
-          };
-        } catch (error) {
-          logger.error(`Failed to queue scheduled migration`, {
-            projectId: project.projectId,
-            error,
-          });
+        await queueCompletePipeline(project.id, executionId, etlConfig);
 
-          return {
-            projectId: project.projectId,
-            success: false,
-            error: error instanceof Error ? error.message : String(error),
-          };
-        }
-      })
-    );
+        await updateProjectLastExecution(project.id, new Date());
 
-    const successful = results.filter(
-      (r) => r.status === "fulfilled" && r.value.success
-    ).length;
-    const failed = results.length - successful;
+        triggeredProjects.push(project.id);
 
-    logger.success(`Cron job completed`, {
-      total: results.length,
-      successful,
-      failed,
-    });
+        logger.success(`Scheduled migration triggered`, {
+          projectId: project.id,
+          executionId,
+        });
+      } catch (error) {
+        logger.error(`Failed to trigger scheduled migration`, {
+          projectId: project.id,
+          error,
+        });
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Scheduled migrations processed",
-      total: results.length,
-      successful,
-      failed,
-      results: results.map((r) =>
-        r.status === "fulfilled" ? r.value : { success: false, error: String(r.reason) }
-      ),
+      message: `Triggered ${triggeredProjects.length} scheduled migration(s)`,
+      projectsTriggered: triggeredProjects.length,
+      projectIds: triggeredProjects,
     });
   } catch (error) {
-    logger.error(`Cron job failed`, error);
+    logger.error("Cron job failed", error);
 
     return NextResponse.json(
       {
@@ -145,3 +130,27 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * Determine if a migration should run based on last execution and interval
+ * @param lastExecutionTime - Last execution timestamp
+ * @param scheduleInterval - Interval in minutes
+ * @returns Whether migration should run
+ */
+function shouldRunMigration(
+  lastExecutionTime: Date | null,
+  scheduleInterval: number | null
+): boolean {
+  if (!scheduleInterval) {
+    return false;
+  }
+
+  if (!lastExecutionTime) {
+    return true;
+  }
+
+  const now = Date.now();
+  const lastRun = new Date(lastExecutionTime).getTime();
+  const intervalMs = scheduleInterval * 60 * 1000;
+
+  return now - lastRun >= intervalMs;
+}
