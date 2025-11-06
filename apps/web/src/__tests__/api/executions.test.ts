@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 
 describe('Execution API Endpoints', () => {
   const BASE_URL = 'http://localhost:3000';
