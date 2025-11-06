@@ -123,10 +123,12 @@ async function discoverSQLServerSchema(
     database: connection.database,
     user: connection.username,
     password: connection.password,
+    connectionTimeout: 20000, // 20s for initial connect
+    requestTimeout: 60000, // 60s for metadata queries
     options: {
       encrypt: false,
       trustServerCertificate: true,
-      connectTimeout: 10000,
+      // keep options minimal; timeouts handled above
     },
   };
 
