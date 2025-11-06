@@ -22,7 +22,8 @@ yarn dev:all
 - Node.js v21 or higher
 - Yarn 4.9.1 or higher
 - PostgreSQL 14 or higher
-- Docker (optional, for local PostgreSQL)
+- Redis 6 or higher (for BullMQ job queue)
+- Docker (optional, for local PostgreSQL and Redis)
 
 ## 🛠️ Development Commands
 
@@ -58,9 +59,12 @@ yarn test:e2e            # Run E2E tests
 DataBridge/
 ├── apps/
 │   ├── web/                    # Next.js Web Application
-│   └── migration-worker/       # Background Worker Service
+│   │   ├── src/app/api/        # API Routes (executions, cron)
+│   │   ├── src/lib/services/   # ETL Pipeline Services
+│   │   └── src/lib/queue/      # BullMQ Worker & Queue
+│   └── migration-worker/       # Background Worker (future separation)
 ├── packages/
-│   └── schema/                 # Shared Database Schema (READ-ONLY)
+│   └── schema/                 # Shared Database Schema
 ├── docs/                       # Documentation
 └── scripts/                    # Utility Scripts
 ```
@@ -90,6 +94,9 @@ DataBridge follows a three-layer database architecture:
 - **Validation**: Zod
 - **State Management**: React Query, Zustand
 - **Visualization**: React Flow
+- **Job Queue**: BullMQ with Redis
+- **ETL Pipeline**: Node.js-based 6-stage pipeline
+- **Scheduling**: Vercel Cron for automated migrations
 - **Testing**: Vitest, Playwright
 
 ## 🔒 Security

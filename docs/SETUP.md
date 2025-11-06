@@ -60,9 +60,11 @@ DataBridge is Integrove's internal data migration platform that enables:
 - **Visual Mapping**: Wizard-based interface for schema mapping
 - **Multi-Pipeline Projects**: Sequential ETL pipelines (Source → Staging → Production)
 - **Data Transformations**: Type conversion, custom SQL, data cleansing
-- **Airflow Integration**: Automated DAG generation and orchestration
-- **Real-time Monitoring**: Track migration progress and errors
+- **6-Stage ETL Pipeline**: Production-ready Node.js-based pipeline with BullMQ orchestration
+- **Scheduled Migrations**: Automated execution via Vercel Cron
+- **Real-time Monitoring**: Track migration progress with stage-level visibility
 - **Support for 5 Databases**: PostgreSQL, MySQL, SQL Server, MongoDB, CouchDB
+- **Attachment Migration**: CouchDB to SAP Object Store integration
 
 ## 🗄️ Database Setup
 
@@ -98,12 +100,54 @@ docker run --name databridge-db \
   -p 5432:5432 \
   -d postgres:14
 
-# Verify it's running
-docker ps | grep databridge-db
+# Start Redis container (for BullMQ)
+docker run --name databridge-redis \
+  -p 6379:6379 \
+  -d redis:7
 
-# Stop/Start container
-docker stop databridge-db
-docker start databridge-db
+# Verify they're running
+docker ps | grep databridge
+
+# Stop/Start containers
+docker stop databridge-db databridge-redis
+docker start databridge-db databridge-redis
+```
+
+### Using Docker Compose
+
+Create `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+services:
+  postgres:
+    image: postgres:14
+    container_name: databridge-db
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: databridge
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+  
+  redis:
+    image: redis:7
+    container_name: databridge-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+
+volumes:
+  postgres-data:
+  redis-data:
+```
+
+Start both services:
+
+```bash
+docker-compose up -d
 ```
 
 ## 📦 Project Structure
@@ -161,9 +205,22 @@ Create `apps/web/.env.local` with:
 # Database
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/databridge"
 
+# Redis (for BullMQ job queue)
+REDIS_URL="redis://localhost:6379"
+
 # Application
 NODE_ENV="development"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+# Session
+SESSION_SECRET="your-32-char-secret-key-here"
+
+# Vercel Cron (for scheduled migrations)
+CRON_SECRET="your-cron-secret-here"
+
+# SAP Object Store (optional, for attachment migration)
+SAP_OBJECT_STORE_URL="https://your-sap-url"
+SAP_OBJECT_STORE_API_KEY="your-api-key"
 ```
 
 ### Database Schema
@@ -287,13 +344,29 @@ Navigate to [http://localhost:3000](http://localhost:3000) and log in with the d
 - View detailed logs and statistics
 - Check for errors and warnings
 
-### 6. (Optional) Set Up Airflow Integration
+### 6. (Optional) Set Up Redis for Production
 
-See [GIT_SETUP.md](./GIT_SETUP.md) for instructions on:
-- Setting up GitHub repository
-- Configuring GitHub Actions
-- Generating and deploying Airflow DAGs
-- Scheduling automated migrations
+For production deployments, use a managed Redis service:
+
+**Option 1: Upstash (Serverless Redis)**
+```bash
+# Sign up at https://upstash.com
+# Create a Redis database
+# Copy the REDIS_URL and add to environment variables
+```
+
+**Option 2: Redis Cloud**
+```bash
+# Sign up at https://redis.com/cloud
+# Create a database
+# Copy connection string to REDIS_URL
+```
+
+**Option 3: Railway/Render**
+```bash
+# Both platforms offer one-click Redis deployment
+# Configure REDIS_URL in your environment
+```
 
 ## 🚨 Troubleshooting
 

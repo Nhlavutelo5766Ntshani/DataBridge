@@ -1,7 +1,12 @@
 import { ArrowRight, Database, GitBranch, Shield, Zap } from "lucide-react";
 import Link from "next/link";
+import { getSession } from "@/lib/auth/session";
+import { Button } from "@/components/ui/button";
 
-const HomePage = () => {
+const HomePage = async () => {
+  const session = await getSession();
+  const isLoggedIn = session.isLoggedIn === true;
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b">
@@ -11,18 +16,26 @@ const HomePage = () => {
             <span className="text-xl font-bold">DataBridge</span>
           </div>
           <nav className="flex items-center gap-6">
-            <Link
-              href="/login"
-              className="text-sm font-medium hover:text-primary"
-            >
-              Login
-            </Link>
-            <Link
-              href="/dashboard"
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              Get Started
-            </Link>
+            {isLoggedIn ? (
+              <Button asChild>
+                <Link href="/dashboard">Dashboard</Link>
+              </Button>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-sm font-medium hover:text-primary"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>

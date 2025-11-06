@@ -2,7 +2,7 @@
 
 ## Overview
 
-DataBridge is a production-ready data migration platform built for Integrove's internal use. It enables visual database mapping, data transformation, and automated ETL pipeline execution with Apache Airflow orchestration.
+DataBridge is a production-ready data migration platform built for Integrove's internal use. It enables visual database mapping, data transformation, and automated ETL pipeline execution with BullMQ job orchestration and a 6-stage Node.js-based pipeline.
 
 ## System Components
 
@@ -14,14 +14,20 @@ DataBridge is a production-ready data migration platform built for Integrove's i
                 │                           │
                 ▼                           ▼
 ┌───────────────────────┐      ┌──────────────────────────────┐
-│   PostgreSQL Database │      │     Apache Airflow           │
-│   (Drizzle ORM)       │      │   (Pipeline Orchestration)   │
+│   PostgreSQL Database │      │     BullMQ + Redis           │
+│   (Drizzle ORM)       │      │   (Job Queue Orchestration)  │
 └───────────────────────┘      └──────────────┬───────────────┘
                                                │
                                                ▼
                                ┌──────────────────────────────┐
-                               │    GitHub Actions CI/CD       │
-                               │   (DAG Deployment)            │
+                               │    ETL Worker Process         │
+                               │   (6-Stage Pipeline)          │
+                               └──────────────────────────────┘
+                                               │
+                                               ▼
+                               ┌──────────────────────────────┐
+                               │    Vercel Cron Jobs           │
+                               │   (Scheduled Migrations)      │
                                └──────────────────────────────┘
 ```
 
@@ -36,17 +42,20 @@ DataBridge is a production-ready data migration platform built for Integrove's i
 - **Lucide React** - Icons
 
 ### Backend
-- **Next.js API Routes** - RESTful endpoints for Airflow integration
+- **Next.js API Routes** - RESTful endpoints for ETL execution control
 - **Drizzle ORM** - Type-safe database operations
 - **PostgreSQL** - Primary database
 - **Iron Session** - Session management
 - **bcryptjs** - Password hashing
+- **BullMQ** - Job queue for background processing
+- **Redis** - In-memory data store for BullMQ
 
 ### Infrastructure
-- **Apache Airflow** - Workflow orchestration
-- **GitHub Actions** - CI/CD pipeline
-- **Vercel** - Application deployment (optional)
-- **Docker** - Airflow containerization
+- **BullMQ Worker** - Background job processing
+- **Redis** - Job queue and caching
+- **Vercel Cron** - Scheduled task execution
+- **Vercel** - Application deployment
+- **Docker** - Development environment (optional)
 
 ## Database Schema
 
@@ -76,7 +85,8 @@ DataBridge is a production-ready data migration platform built for Integrove's i
 
 #### Scheduling & Monitoring
 - `schedules` - Cron-based project schedules
-- `airflow_dag_runs` - Airflow DAG execution tracking
+- `execution_stages` - ETL pipeline stage tracking
+- `data_validations` - Data quality validation results
 
 ## Three-Layer Architecture
 
@@ -172,36 +182,81 @@ The mapping interface uses a 4-step wizard (replaced complex React Flow canvas):
 - Displays warnings for unmapped columns
 - Row count estimates
 
-### Step 4: Execution
-- Triggers migration job
-- Real-time progress tracking
-- Error logging and retry capabilities
+### Step 4: Schedule & Dependencies
+- Configure cron-based schedules
+- Set pipeline dependencies
+- Define SLA and retry policies
+- Advanced execution settings
 
-## Airflow Integration
+### Step 5: Preview & Validate
+- Review sample data with transformations
+- Preview ETL pipeline structure
+- Data validation warnings
 
-### DAG Generation
-- **Automatic DAG creation** from project configuration
-- **Jinja2 templates** for flexible DAG structure
-- **Task dependencies** based on pipeline order
-- **Retry logic** and error handling
-- **SLA monitoring**
+### Step 6: Execute & Monitor
+- Start ETL pipeline execution
+- Real-time stage-by-stage tracking
+- Progress metrics and error logs
+- Pause/Resume/Cancel controls
 
-### Deployment Flow
-1. User clicks "Generate & Deploy DAG" in UI
-2. System generates Python DAG file from template
-3. Commits DAG to GitHub via GitHub API
-4. GitHub Actions workflow triggers:
-   - Validates DAG syntax
-   - Runs quality checks
-   - Deploys to Airflow (Git-based pull)
-5. Airflow refreshes DAGs automatically
-6. User can trigger DAG from UI or Airflow
+## ETL Pipeline Architecture
 
-### Git-Based Deployment
-- **Development**: Airflow pulls from `dev` branch
-- **Production**: Airflow pulls from `main` branch
-- **No AWS/S3 required** - simple Git sync
-- **Version controlled** - full DAG history in Git
+### 6-Stage Pipeline
+DataBridge implements a production-ready ETL pipeline with six sequential stages:
+
+1. **Stage 1: Extract** (`stage1-extract.ts`)
+   - Connect to source database (SQL Server, MySQL, PostgreSQL, MongoDB)
+   - Create staging tables in target PostgreSQL
+   - Bulk data extraction with configurable batch sizes
+   - Connection pooling for optimal performance
+
+2. **Stage 2: Transform & Cleanse** (`stage2-transform.ts`)
+   - Apply column mappings and transformations
+   - Data type conversions
+   - Custom SQL expressions
+   - NULL handling and default values
+   - String operations (UPPER, LOWER, TRIM)
+
+3. **Stage 3: Load Dimensions** (`stage3-load-dimensions.ts`)
+   - Load dimension tables first (for referential integrity)
+   - Bulk insert using pg-copy-streams
+   - Transaction management
+   - Progress tracking per table
+
+4. **Stage 4: Load Facts & Attachments** (`stage4-load-facts.ts`)
+   - Load fact tables
+   - Migrate attachments from CouchDB to SAP Object Store
+   - Handle binary data and metadata
+   - Maintain data integrity
+
+5. **Stage 5: Validate** (`stage5-validate.ts`)
+   - Row count reconciliation
+   - NULL constraint validation
+   - Foreign key integrity checks
+   - Custom validation rules
+   - Generate validation report
+
+6. **Stage 6: Generate Report** (`stage6-generate-report.ts`)
+   - Execution summary
+   - Success/failure statistics
+   - Performance metrics (throughput, duration)
+   - Error logs and warnings
+   - Store report in database
+
+### BullMQ Job Queue
+- **Job Orchestration**: BullMQ manages ETL job lifecycle
+- **Redis Backend**: High-performance job storage and state management
+- **Worker Process**: Dedicated worker for job execution (`etl-worker.ts`)
+- **Job Retry**: Automatic retry with exponential backoff
+- **Progress Tracking**: Real-time progress updates
+- **Concurrency Control**: Configurable parallel job execution
+
+### Vercel Cron Scheduling
+- **Automated Execution**: Scheduled migrations via Vercel Cron
+- **API Route**: `/api/cron/run-scheduled-migrations`
+- **Security**: Protected by CRON_SECRET environment variable
+- **Flexibility**: Cron expressions for complex schedules
+- **Timezone Support**: UTC-based scheduling
 
 ## Authentication & Authorization
 
@@ -232,10 +287,15 @@ The mapping interface uses a 4-step wizard (replaced complex React Flow canvas):
 
 ## API Routes
 
-### Pipeline Execution
-- `POST /api/pipelines/[id]/execute` - Execute a single pipeline
-- `GET /api/pipelines/[id]/execute` - Get pipeline execution status
-- `POST /api/projects/[id]/execute` - Execute all pipelines in a project
+### Execution Management
+- `POST /api/executions/start` - Start a new migration execution
+- `GET /api/executions/[id]/status` - Get real-time execution status
+- `POST /api/executions/[id]/cancel` - Cancel a running execution
+- `GET /api/executions/history` - Get execution history
+- `GET /api/executions/queue-stats` - Get BullMQ queue statistics
+
+### Scheduled Migrations
+- `POST /api/cron/run-scheduled-migrations` - Vercel Cron endpoint for scheduled runs
 
 ### Health Check
 - `GET /api/health` - System health status
@@ -269,30 +329,30 @@ DataBridge/
 │       │   ├── lib/
 │       │   │   ├── actions/             # Layer 3: Server actions
 │       │   │   ├── services/            # Business logic
-│       │   │   │   ├── airflow-dag-generator.ts
-│       │   │   │   ├── github-integration.ts
-│       │   │   │   ├── pipeline-executor.ts
+│       │   │   │   ├── etl/             # 6-stage ETL pipeline
+│       │   │   │   │   ├── stage1-extract.ts
+│       │   │   │   │   ├── stage2-transform.ts
+│       │   │   │   │   ├── stage3-load-dimensions.ts
+│       │   │   │   │   ├── stage4-load-facts.ts
+│       │   │   │   │   ├── stage5-validate.ts
+│       │   │   │   │   └── stage6-generate-report.ts
 │       │   │   │   └── schema-discovery.ts
+│       │   │   ├── queue/               # BullMQ integration
+│       │   │   │   ├── etl-queue.ts
+│       │   │   │   └── etl-worker.ts
 │       │   │   ├── auth/                # Session management
 │       │   │   ├── constants/
 │       │   │   └── utils/
 │       │   └── middleware.ts            # Route protection
 │       └── public/
 ├── packages/
-│   └── schema/                          # Layer 1: Schema (READ-ONLY)
+│   └── schema/                          # Layer 1: Schema
 │       ├── src/
 │       │   ├── schema.ts
 │       │   ├── relations.ts
 │       │   └── constants.ts
 │       └── migrations/
-├── airflow/                             # Airflow configuration
-│   ├── dags/                            # Generated DAG files
-│   ├── docker-compose.yml
-│   └── README.md
-├── .github/
-│   └── workflows/
-│       ├── airflow-dag-ci.yml          # DAG deployment
-│       └── app-ci-cd.yml               # App deployment
+├── vercel.json                          # Vercel Cron configuration
 └── docs/
 ```
 
@@ -309,8 +369,8 @@ DataBridge/
 - No hardcoded secrets in code
 
 ### API Security
-- API keys for Airflow integration
-- GitHub API token for automated commits
+- CRON_SECRET for scheduled task authentication
+- Session-based authentication for API routes
 - Rate limiting (future enhancement)
 
 ## Performance Considerations
@@ -329,8 +389,8 @@ DataBridge/
 ### Scalability
 - Horizontal scaling via Vercel
 - Database connection pooling
-- Background job processing (Airflow)
-- Asynchronous ETL execution
+- Background job processing (BullMQ with Redis)
+- Asynchronous ETL execution with worker processes
 
 ## Monitoring & Logging
 
@@ -341,15 +401,17 @@ DataBridge/
 
 ### Migration Monitoring
 - Real-time progress tracking in UI
-- Pipeline execution status
+- Stage-by-stage execution status
 - Error tracking and warnings
-- Airflow DAG run history
+- Execution history and metrics
+- BullMQ queue monitoring dashboard
 
-### Airflow Monitoring
-- Airflow UI for DAG execution
-- Task-level logs and metrics
-- SLA monitoring
-- Retry and failure tracking
+### ETL Stage Tracking
+- 6-stage pipeline visualization
+- Per-stage status (pending, running, completed, failed)
+- Duration and performance metrics
+- Detailed error logs per stage
+- Retry and recovery tracking
 
 ## Error Handling
 
@@ -408,14 +470,21 @@ DataBridge/
 ### Vercel (Web Application)
 1. Connect GitHub repository
 2. Auto-deploy on push to `main`
-3. Environment variables in Vercel dashboard
+3. Environment variables in Vercel dashboard:
+   - `DATABASE_URL`
+   - `REDIS_URL`
+   - `CRON_SECRET`
+   - `SESSION_SECRET`
+   - `SAP_OBJECT_STORE_URL`
+   - `SAP_OBJECT_STORE_API_KEY`
 4. Preview deployments for PRs
+5. Vercel Cron for scheduled migrations
 
-### Airflow (Self-Hosted)
-1. Docker Compose setup
-2. Git-based DAG sync
-3. Automated via GitHub Actions
-4. Health checks and monitoring
+### Redis (Job Queue)
+1. Use managed Redis (Upstash, Redis Cloud, etc.)
+2. Configure `REDIS_URL` environment variable
+3. Ensure network connectivity from Vercel
+4. Monitor memory usage and performance
 
 ## Future Enhancements
 

@@ -170,10 +170,15 @@ export const Sidebar = ({ user }: SidebarProps) => {
                 )}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="top" className="w-56 mb-2">
+            <DropdownMenuContent 
+              align="center" 
+              side="right" 
+              className="w-56"
+              sideOffset={8}
+            >
               <DropdownMenuItem
                 onClick={handleLogout}
-                className="text-red-600 focus:text-red-600 cursor-pointer"
+                className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
@@ -181,22 +186,16 @@ export const Sidebar = ({ user }: SidebarProps) => {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <button
-            onClick={handleLogout}
-            className={cn(
-              "flex items-center gap-3 hover:bg-red-50 rounded-lg p-3 transition-colors cursor-pointer w-full text-left",
-              isCollapsed && "justify-center p-2"
-            )}
-          >
-            <div className="h-9 w-9 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
-              <LogOut className="h-5 w-5 text-red-600" />
+          <div className="flex items-center gap-3 rounded-lg p-3">
+            <div className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+              <User className="h-5 w-5 text-gray-400" />
             </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-red-600">Log out</p>
+                <p className="text-sm text-gray-500">No user</p>
               </div>
             )}
-          </button>
+          </div>
         )}
       </div>
     </aside>

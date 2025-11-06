@@ -50,14 +50,15 @@ DATABASE_URL=postgresql://postgres.[YOUR-PROJECT-REF]:[YOUR-PASSWORD]@aws-0-us-e
 # Session Secret (keep existing or generate new)
 SESSION_SECRET=your-existing-session-secret
 
-# Other variables (if applicable)
-AIRFLOW_API_URL=http://localhost:8080/api/v1
-AIRFLOW_USERNAME=airflow
-AIRFLOW_PASSWORD=airflow
-GITHUB_TOKEN=your-github-token
-GITHUB_REPO_OWNER=your-org
-GITHUB_REPO_NAME=your-repo
-AIRFLOW_DAGS_REPO=your-airflow-dags-repo
+# Redis (for BullMQ job queue)
+REDIS_URL=redis://localhost:6379
+
+# Vercel Cron (for scheduled migrations)
+CRON_SECRET=your-cron-secret-here
+
+# SAP Object Store (optional, for attachment migration)
+SAP_OBJECT_STORE_URL=https://your-sap-url
+SAP_OBJECT_STORE_API_KEY=your-api-key
 ```
 
 ### 3. Run Database Migrations
