@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   CheckCircle,
   XCircle,
@@ -59,21 +59,7 @@ export const ExecutionMonitor = ({
   const [error, setError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
 
-  useEffect(() => {
-    startMigration();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const startMigration = async () => {
-    try {
-      const { executionId } = await onStartExecution();
-      pollStatus(executionId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start migration");
-    }
-  };
-
-  const pollStatus = async (executionId: string) => {
+  const pollStatus = useCallback(async (executionId: string) => {
     const poll = async () => {
       try {
         const data = await onCheckStatus(executionId);
@@ -88,7 +74,20 @@ export const ExecutionMonitor = ({
     };
 
     await poll();
-  };
+  }, [onCheckStatus]);
+
+  const startMigration = useCallback(async () => {
+    try {
+      const { executionId } = await onStartExecution();
+      pollStatus(executionId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start migration");
+    }
+  }, [onStartExecution, pollStatus]);
+
+  useEffect(() => {
+    startMigration();
+  }, [startMigration]);
 
   const handlePause = async () => {
     if (!execution || !onPauseExecution) return;

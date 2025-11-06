@@ -1,5 +1,6 @@
-import { CheckCircle2, GitBranch, Play, XCircle } from "lucide-react";
+"use client";
 
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -7,92 +8,241 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  Loader2,
+  FileText,
+  RefreshCw,
+} from "lucide-react";
+import Link from "next/link";
 
-const MigrationsPage = async () => {
+type ExecutionStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
+
+type Execution = {
+  id: string;
+  projectId: string;
+  projectName: string;
+  status: ExecutionStatus;
+  startTime: string;
+  endTime?: string;
+  duration?: number;
+  recordsProcessed: number;
+  recordsFailed: number;
+  progress: number;
+};
+
+const statusConfig = {
+  pending: {
+    label: "Pending",
+    icon: Clock,
+    variant: "secondary" as const,
+  },
+  running: {
+    label: "Running",
+    icon: Loader2,
+    variant: "default" as const,
+  },
+  completed: {
+    label: "Completed",
+    icon: CheckCircle,
+    variant: "success" as const,
+  },
+  failed: {
+    label: "Failed",
+    icon: XCircle,
+    variant: "destructive" as const,
+  },
+  cancelled: {
+    label: "Cancelled",
+    icon: XCircle,
+    variant: "secondary" as const,
+  },
+};
+
+const ExecutionHistory = () => {
+  const [executions, setExecutions] = useState<Execution[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchExecutions = async () => {
+    try {
+      setRefreshing(true);
+      const response = await fetch("/api/executions/history");
+      if (response.ok) {
+        const data = await response.json();
+        setExecutions(data.executions || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch execution history:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExecutions();
+    const interval = setInterval(fetchExecutions, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatDuration = (ms?: number) => {
+    if (!ms) return "N/A";
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#06B6D4]" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">
-            Migration Executions
+          <h1 className="text-3xl font-bold text-gray-900">
+            Execution History
           </h1>
-          <p className="text-gray-600 mt-3">
-            Monitor and manage your data migration executions
+          <p className="text-gray-500 mt-1">
+            View and monitor all migration executions
           </p>
         </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="border-l-4 border-l-primary">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-gray-700">
-              Total Migrations
-            </CardTitle>
-            <GitBranch className="h-5 w-5 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">0</div>
-            <p className="text-xs text-gray-500 mt-1">No executions yet</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-blue-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-gray-700">
-              Running
-            </CardTitle>
-            <Play className="h-5 w-5 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">0</div>
-            <p className="text-xs text-gray-500 mt-1">Active migrations</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-gray-700">
-              Completed
-            </CardTitle>
-            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">0</div>
-            <p className="text-xs text-gray-500 mt-1">Successfully finished</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-red-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-gray-700">
-              Failed
-            </CardTitle>
-            <XCircle className="h-5 w-5 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">0</div>
-            <p className="text-xs text-gray-500 mt-1">Errors encountered</p>
-          </CardContent>
-        </Card>
+        <Button onClick={fetchExecutions} disabled={refreshing}>
+          <RefreshCw
+            className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+          />
+          Refresh
+        </Button>
       </div>
 
       <Card>
-        <CardHeader variant="gray">
-          <CardTitle variant="small">All Migrations</CardTitle>
+        <CardHeader>
+          <CardTitle>Recent Executions</CardTitle>
           <CardDescription>
-            View and monitor all migration executions
+            All migration execution runs across all projects
           </CardDescription>
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <GitBranch className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No migrations yet</h3>
-            <p className="text-muted-foreground max-w-md">
-              Once you execute a migration from a project, it will appear here
-              for monitoring and management.
-            </p>
-          </div>
+        <CardContent>
+          {executions.length === 0 ? (
+            <div className="text-center py-12">
+              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No executions found</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Start a migration to see execution history
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Project</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Start Time</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Records</TableHead>
+                  <TableHead>Progress</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {executions.map((execution) => {
+                  const config = statusConfig[execution.status];
+                  const StatusIcon = config.icon;
+
+                  return (
+                    <TableRow key={execution.id}>
+                      <TableCell className="font-medium">
+                        {execution.projectName}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={config.variant}>
+                          <StatusIcon
+                            className={`w-3 h-3 mr-1 ${
+                              execution.status === "running"
+                                ? "animate-spin"
+                                : ""
+                            }`}
+                          />
+                          {config.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {formatDate(execution.startTime)}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {formatDuration(execution.duration)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <div className="text-green-600">
+                            ✓ {execution.recordsProcessed}
+                          </div>
+                          {execution.recordsFailed > 0 && (
+                            <div className="text-red-600">
+                              ✗ {execution.recordsFailed}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-[#06B6D4]"
+                              style={{ width: `${execution.progress}%` }}
+                            />
+                          </div>
+                          <span className="text-sm text-gray-600">
+                            {execution.progress}%
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Link href={`/migrations/${execution.id}`}>
+                          <Button variant="ghost" size="sm">
+                            View Details
+                          </Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 };
 
-export default MigrationsPage;
+export default ExecutionHistory;
