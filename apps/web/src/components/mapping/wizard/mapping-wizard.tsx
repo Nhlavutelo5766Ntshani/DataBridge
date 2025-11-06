@@ -58,7 +58,6 @@ export const MappingWizard = ({
   >([]);
   const [columnMappings, setColumnMappings] = useState<TableMappingData[]>([]);
 
-  // Pipeline configuration state
   const [pipelineConfig, setPipelineConfig] = useState({
     batchSize: 1000,
     errorHandling: "fail-fast" as
@@ -74,7 +73,6 @@ export const MappingWizard = ({
     postMigrationHook: "",
   });
 
-  // Schedule configuration state
   const [scheduleConfig, setScheduleConfig] = useState({
     enabled: false,
     cronExpression: "0 0 * * *",
@@ -169,28 +167,120 @@ export const MappingWizard = ({
   };
 
   const handleLoadPreview = async () => {
-    // Mock preview data - replace with actual API call
     return [];
   };
 
   const handleStartExecution = async () => {
-    // Call execution API
-    return { executionId: "test-execution-id" };
+    try {
+      const response = await fetch("/api/executions/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectId: project.id,
+          executionId: `exec-${project.id}-${Date.now()}`,
+          config: {
+            projectId: project.id,
+            executionId: `exec-${project.id}-${Date.now()}`,
+            batchSize: pipelineConfig.batchSize,
+            parallelism: pipelineConfig.parallelism,
+            errorHandling: pipelineConfig.errorHandling,
+            validateData: pipelineConfig.validateData,
+            staging: {
+              databaseUrl: process.env.NEXT_PUBLIC_STAGING_DATABASE_URL || "",
+              schemaName: "staging",
+              tablePrefix: "stg_",
+              cleanupAfterMigration: false,
+            },
+            retryAttempts: scheduleConfig.maxRetries,
+            retryDelayMs: scheduleConfig.retryDelayMinutes * 60 * 1000,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to start execution");
+      }
+
+      const data = await response.json();
+      return { executionId: data.executionId };
+    } catch (error) {
+      console.error("Failed to start execution:", error);
+      throw error;
+    }
   };
 
   const handleCheckStatus = async (executionId: string) => {
-    // Poll execution status
-    return {
-      executionId,
-      status: "completed" as const,
-      totalRecords: 1000,
-      processedRecords: 1000,
-      failedRecords: 0,
-      progress: 100,
-      startTime: new Date(),
-      endTime: new Date(),
-      stages: [],
-    };
+    try {
+      const response = await fetch(`/api/executions/${executionId}/status`);
+
+      if (!response.ok) {
+        throw new Error("Failed to check execution status");
+      }
+
+      const data = await response.json();
+
+      return {
+        executionId: data.executionId,
+        status: data.status,
+        totalRecords: data.totalRecordsProcessed,
+        processedRecords: data.totalRecordsProcessed,
+        failedRecords: data.totalRecordsFailed,
+        progress: data.progress,
+        startTime: new Date(data.startTime),
+        endTime: data.endTime ? new Date(data.endTime) : undefined,
+        stages: data.stages || [],
+      };
+    } catch (error) {
+      console.error("Failed to check execution status:", error);
+      throw error;
+    }
+  };
+
+  const handlePauseExecution = async (executionId: string) => {
+    try {
+      const response = await fetch(`/api/executions/${executionId}/pause`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to pause execution");
+      }
+    } catch (error) {
+      console.error("Failed to pause execution:", error);
+      throw error;
+    }
+  };
+
+  const handleResumeExecution = async (executionId: string) => {
+    try {
+      const response = await fetch(`/api/executions/${executionId}/resume`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to resume execution");
+      }
+    } catch (error) {
+      console.error("Failed to resume execution:", error);
+      throw error;
+    }
+  };
+
+  const handleCancelExecution = async (executionId: string) => {
+    try {
+      const response = await fetch(`/api/executions/${executionId}/cancel`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to cancel execution");
+      }
+    } catch (error) {
+      console.error("Failed to cancel execution:", error);
+      throw error;
+    }
   };
 
   return (
@@ -247,6 +337,9 @@ export const MappingWizard = ({
           <ExecutionMonitor
             onStartExecution={handleStartExecution}
             onCheckStatus={handleCheckStatus}
+            onPauseExecution={handlePauseExecution}
+            onResumeExecution={handleResumeExecution}
+            onRetryExecution={handleCancelExecution}
           />
         )}
       </WizardLayout>
