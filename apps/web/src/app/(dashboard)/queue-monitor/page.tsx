@@ -16,7 +16,6 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Loader2,
   RefreshCw,
   Pause,
   Play,
