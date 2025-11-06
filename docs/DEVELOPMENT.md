@@ -567,21 +567,22 @@ Features:
 # Database
 DATABASE_URL="postgresql://user:password@localhost:5432/databridge"
 
-# Redis (for BullMQ)
+# Redis (for BullMQ job queue)
 REDIS_URL="redis://localhost:6379"
 
 # Application
 NODE_ENV="development"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
-# Airflow Integration
-AIRFLOW_API_URL="http://localhost:8080"
-AIRFLOW_API_KEY="dev-key"
+# Session
+SESSION_SECRET="your-32-char-secret-key-here"
 
-# GitHub Integration
-GITHUB_TOKEN="ghp_xxx"
-GITHUB_REPO_OWNER="integrove"
-GITHUB_REPO_NAME="DataBridge"
+# Vercel Cron (for scheduled migrations)
+CRON_SECRET="your-cron-secret-here"
+
+# SAP Object Store (optional, for attachment migration)
+SAP_OBJECT_STORE_URL="https://your-sap-url"
+SAP_OBJECT_STORE_API_KEY="your-api-key"
 ```
 
 ## 🔍 Debugging

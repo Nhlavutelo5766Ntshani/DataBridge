@@ -18,11 +18,11 @@ Single Project: "Customer Data Migration"
 ### Benefits of Multi-Pipeline Architecture
 
 - ✅ **Unified Management**: All pipelines in one project
-- ✅ **Sequential Execution**: Pipelines run in order automatically
+- ✅ **Sequential Execution**: Pipelines run in order automatically via BullMQ
 - ✅ **Dependency Management**: Pipeline 2 waits for Pipeline 1
-- ✅ **Granular Monitoring**: Track each pipeline separately
-- ✅ **Airflow Integration**: Single DAG orchestrates all pipelines
-- ✅ **Flexible Scheduling**: Schedule the entire project or individual pipelines
+- ✅ **Granular Monitoring**: Track each pipeline and stage separately
+- ✅ **BullMQ Orchestration**: Reliable job queue with Redis backend
+- ✅ **Flexible Scheduling**: Vercel Cron for automated execution
 
 ## Common Migration Patterns
 

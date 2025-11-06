@@ -45,18 +45,9 @@ function getSessionOptions() {
  */
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  const method = request.method;
-  const startTime = Date.now();
 
-  // Log incoming request
-  logger.debug(`${method} ${path}`);
-
-  // Skip session checks for API routes (already handled by matcher, but double-check)
   if (path.startsWith('/api')) {
-    const response = NextResponse.next();
-    const duration = Date.now() - startTime;
-    logger.debug(`${method} ${path} - ${response.status} (${duration}ms)`);
-    return response;
+    return NextResponse.next();
   }
 
   const isPublicPath = publicPaths.includes(path);
@@ -72,17 +63,12 @@ export async function middleware(request: NextRequest) {
   const isLoggedIn = session.isLoggedIn === true;
 
   if (isAuthPath && isLoggedIn) {
-    logger.info(`Redirecting authenticated user from ${path} to /dashboard`);
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   if (!isPublicPath && !isLoggedIn) {
-    logger.warn(`Unauthorized access attempt to ${path}, redirecting to /login`);
     return NextResponse.redirect(new URL("/login", request.url));
   }
-
-  const duration = Date.now() - startTime;
-  logger.debug(`${method} ${path} - 200 (${duration}ms)`);
 
   return response;
 }
