@@ -73,6 +73,7 @@ export async function createSession(
  */
 export async function destroySession(): Promise<void> {
   const session = await getSession();
+  await session.save();
   session.destroy();
 }
 

@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useConnection } from "@/context/connection-context";
 import { fetchUserConnections } from "@/lib/actions/connections";
 import { TEMP_USER_ID } from "@/lib/constants/temp-data";
@@ -58,8 +59,52 @@ export const ConnectionsList = (): JSX.Element => {
               Manage your source and target database connections
             </p>
           </div>
+          <Skeleton className="h-10 w-[160px]" />
         </div>
-        <div className="text-center py-12">Loading...</div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="border-l-4">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <Skeleton className="h-4 w-[120px]" />
+                <Skeleton className="h-5 w-5 rounded-full" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-[60px] mb-2" />
+                <Skeleton className="h-3 w-[100px]" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <Card>
+          <CardHeader variant="gray">
+            <Skeleton className="h-6 w-[150px] mb-2" />
+            <Skeleton className="h-4 w-[250px]" />
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-5 border border-gray-200 rounded-lg"
+                >
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-10 w-10 rounded-lg" />
+                    <div>
+                      <Skeleton className="h-5 w-[180px] mb-2" />
+                      <Skeleton className="h-4 w-[140px]" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-6 w-[60px] rounded-full" />
+                    <Skeleton className="h-6 w-[50px] rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
