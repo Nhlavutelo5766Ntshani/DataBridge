@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AlertCircle, CheckCircle, Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,12 +32,7 @@ export const MigrationPreview = ({
   const [previews, setPreviews] = useState<PreviewData[]>([]);
   const [selectedTable, setSelectedTable] = useState(0);
 
-  useEffect(() => {
-    loadPreviews();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadPreviews = async () => {
+  const loadPreviews = useCallback(async () => {
     setLoading(true);
     try {
       const data = await onLoadPreview();
@@ -49,7 +44,11 @@ export const MigrationPreview = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [onLoadPreview, onValidationComplete]);
+
+  useEffect(() => {
+    loadPreviews();
+  }, [loadPreviews]);
 
   if (loading) {
     return (

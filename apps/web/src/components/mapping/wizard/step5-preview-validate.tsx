@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AlertCircle, CheckCircle, Info, Loader2, GitBranch, Database, ArrowRight, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,12 +37,7 @@ export const PreviewValidate = ({ projectName, onLoadPreview }: PreviewValidateP
   const [previews, setPreviews] = useState<PreviewData[]>([]);
   const [selectedTable, setSelectedTable] = useState(0);
 
-  useEffect(() => {
-    loadPreviews();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadPreviews = async () => {
+  const loadPreviews = useCallback(async () => {
     setLoading(true);
     try {
       const data = await onLoadPreview();
@@ -52,9 +47,12 @@ export const PreviewValidate = ({ projectName, onLoadPreview }: PreviewValidateP
     } finally {
       setLoading(false);
     }
-  };
+  }, [onLoadPreview]);
 
-  // Generate DAG structure
+  useEffect(() => {
+    loadPreviews();
+  }, [loadPreviews]);
+
   const dagNodes: DAGNode[] = [
     { id: "extract", label: "Extract Data", type: "source", status: "pending" },
     { id: "transform", label: "Transform & Map", type: "transform", status: "pending" },
