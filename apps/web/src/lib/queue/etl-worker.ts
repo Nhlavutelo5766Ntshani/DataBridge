@@ -201,82 +201,90 @@ export async function processETLJob(job: Job<ETLJobData>) {
 }
 
 /**
- * ETL Worker Instance
- * Processes ETL jobs from the queue
+ * ETL Worker Instance (lazy initialization)
  */
-export const etlWorker = new Worker<ETLJobData>(
-  "etl-jobs",
-  processETLJob,
-  {
-    connection: getRedisConnection(),
-    concurrency: parseInt(process.env.ETL_WORKER_CONCURRENCY || "2"),
-    limiter: {
-      max: 10, // Max 10 jobs
-      duration: 1000, // Per 1 second
-    },
+let etlWorker: Worker<ETLJobData> | null = null;
+
+function getWorker(): Worker<ETLJobData> {
+  if (!etlWorker) {
+    etlWorker = new Worker<ETLJobData>(
+      "etl-jobs",
+      processETLJob,
+      {
+        connection: getRedisConnection(),
+        concurrency: parseInt(process.env.ETL_WORKER_CONCURRENCY || "2"),
+        limiter: {
+          max: 10,
+          duration: 1000,
+        },
+      }
+    );
+
+    etlWorker.on("completed", (job) => {
+      logger.success(`🎉 [WORKER EVENT] Job completed`, {
+        jobId: job.id,
+        name: job.name,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    etlWorker.on("failed", (job, error) => {
+      logger.error(`❌ [WORKER EVENT] Job failed`, {
+        jobId: job?.id,
+        name: job?.name,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    etlWorker.on("error", (error) => {
+      logger.error(`🚨 [WORKER EVENT] Worker error`, {
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    etlWorker.on("active", (job) => {
+      logger.info(`▶️ [WORKER EVENT] Job started`, {
+        jobId: job.id,
+        name: job.name,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    etlWorker.on("progress", (job, progress) => {
+      logger.info(`📊 [WORKER EVENT] Job progress`, {
+        jobId: job.id,
+        name: job.name,
+        progress: `${progress}%`,
+      });
+    });
   }
-);
 
-/**
- * Worker event handlers
- */
-etlWorker.on("completed", (job) => {
-  logger.success(`🎉 [WORKER EVENT] Job completed`, {
-    jobId: job.id,
-    name: job.name,
-    timestamp: new Date().toISOString(),
-  });
-});
-
-etlWorker.on("failed", (job, error) => {
-  logger.error(`❌ [WORKER EVENT] Job failed`, {
-    jobId: job?.id,
-    name: job?.name,
-    error: error.message,
-    timestamp: new Date().toISOString(),
-  });
-});
-
-etlWorker.on("error", (error) => {
-  logger.error(`🚨 [WORKER EVENT] Worker error`, {
-    error: error.message,
-    stack: error.stack,
-    timestamp: new Date().toISOString(),
-  });
-});
-
-etlWorker.on("active", (job) => {
-  logger.info(`▶️ [WORKER EVENT] Job started`, {
-    jobId: job.id,
-    name: job.name,
-    timestamp: new Date().toISOString(),
-  });
-});
-
-etlWorker.on("progress", (job, progress) => {
-  logger.info(`📊 [WORKER EVENT] Job progress`, {
-    jobId: job.id,
-    name: job.name,
-    progress: `${progress}%`,
-  });
-});
+  return etlWorker;
+}
 
 /**
  * Graceful shutdown handler
  */
 export async function shutdownWorker(): Promise<void> {
-  logger.info(`🛑 [WORKER] Shutting down ETL worker...`);
-  await etlWorker.close();
-  logger.info(`✅ [WORKER] ETL worker shut down successfully`);
+  if (etlWorker) {
+    logger.info(`🛑 [WORKER] Shutting down ETL worker...`);
+    await etlWorker.close();
+    logger.info(`✅ [WORKER] ETL worker shut down successfully`);
+  }
 }
 
 /**
  * Initialize worker (for standalone worker process)
  */
 export function initializeWorker(): void {
+  const worker = getWorker();
+  
   logger.success(`🚀 [WORKER] ETL Worker initialized and ready!`, {
-    concurrency: etlWorker.opts.concurrency,
-    limiter: etlWorker.opts.limiter,
+    concurrency: worker.opts.concurrency,
+    limiter: worker.opts.limiter,
     redisHost: getRedisConnection().host,
     redisPort: getRedisConnection().port,
     timestamp: new Date().toISOString(),
