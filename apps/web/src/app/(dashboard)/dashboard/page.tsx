@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Activity,
   Database,
@@ -7,6 +9,7 @@ import {
   Plus,
 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +19,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ConnectionDrawer } from "@/components/connections/connection-drawer";
+import { ConnectionProvider, useConnection } from "@/context/connection-context";
+import { fetchUserConnections } from "@/lib/actions/connections";
+import { fetchUserProjects } from "@/lib/actions/projects";
+import { TEMP_USER_ID } from "@/lib/constants/temp-data";
 import { PATHS } from "@/lib/constants/paths";
 
 type DashboardStats = {
@@ -25,17 +33,43 @@ type DashboardStats = {
   totalReports: number;
 };
 
-async function getDashboardStats(): Promise<DashboardStats> {
-  return {
+const DashboardContent = () => {
+  const { openCreateDrawer } = useConnection();
+  const [stats, setStats] = useState<DashboardStats>({
     activeConnections: 0,
     totalProjects: 0,
     totalMigrations: 0,
     totalReports: 0,
-  };
-}
+  });
 
-const DashboardPage = async () => {
-  const stats = await getDashboardStats();
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const [connectionsRes, projectsRes] = await Promise.all([
+          fetchUserConnections(TEMP_USER_ID),
+          fetchUserProjects(TEMP_USER_ID),
+        ]);
+
+        const activeConnections = connectionsRes.success && connectionsRes.data
+          ? connectionsRes.data.filter((c) => c.isActive).length
+          : 0;
+
+        const totalProjects = projectsRes.success && projectsRes.data
+          ? projectsRes.data.length
+          : 0;
+
+        setStats({
+          activeConnections,
+          totalProjects,
+          totalMigrations: 0,
+          totalReports: 0,
+        });
+      } catch (error) {
+        console.error('Failed to load dashboard stats:', error);
+      }
+    };
+    loadStats();
+  }, []);
 
   const statsConfig = [
     {
@@ -122,20 +156,19 @@ const DashboardPage = async () => {
         </CardHeader>
         <CardContent className="pt-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Link href={PATHS.DASHBOARD.CONNECTIONS_NEW}>
-              <Button
-                variant="outline"
-                className="w-full h-auto p-5 flex flex-col items-center gap-3 hover:border-primary hover:bg-primary/5 transition-all"
-              >
-                <Database className="h-7 w-7 text-primary" />
-                <div className="text-center">
-                  <div className="font-medium text-sm text-gray-900">
-                    New Connection
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">Add database</div>
+            <Button
+              variant="outline"
+              className="w-full h-auto p-5 flex flex-col items-center gap-3 hover:border-primary hover:bg-primary/5 transition-all"
+              onClick={openCreateDrawer}
+            >
+              <Database className="h-7 w-7 text-primary" />
+              <div className="text-center">
+                <div className="font-medium text-sm text-gray-900">
+                  New Connection
                 </div>
-              </Button>
-            </Link>
+                <div className="text-xs text-gray-500 mt-1">Add database</div>
+              </div>
+            </Button>
 
             <Link href={PATHS.DASHBOARD.PROJECTS_NEW}>
               <Button
@@ -206,23 +239,33 @@ const DashboardPage = async () => {
                 ? "No connections yet. Create your first database connection to get started."
                 : "You're all set! Create a new project to begin your migration."}
             </p>
-            <Link
-              href={
-                stats.activeConnections === 0
-                  ? PATHS.DASHBOARD.CONNECTIONS_NEW
-                  : PATHS.DASHBOARD.PROJECTS_NEW
-              }
-            >
-              <Button className="bg-primary hover:bg-primary/90 text-white">
-                {stats.activeConnections === 0
-                  ? "Create Connection"
-                  : "Create Project"}
+            {stats.activeConnections === 0 ? (
+              <Button 
+                className="bg-primary hover:bg-primary/90 text-white"
+                onClick={openCreateDrawer}
+              >
+                Create Connection
               </Button>
-            </Link>
+            ) : (
+              <Link href={PATHS.DASHBOARD.PROJECTS_NEW}>
+                <Button className="bg-primary hover:bg-primary/90 text-white">
+                  Create Project
+                </Button>
+              </Link>
+            )}
           </div>
         </CardContent>
       </Card>
     </div>
+  );
+};
+
+const DashboardPage = () => {
+  return (
+    <ConnectionProvider>
+      <DashboardContent />
+      <ConnectionDrawer />
+    </ConnectionProvider>
   );
 };
 

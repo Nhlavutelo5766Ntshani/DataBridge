@@ -155,8 +155,9 @@ export const TableSelection = ({
       </div>
 
       {/* Scrollable Three-Panel Content Area */}
-      <div className="flex-1 min-h-0 overflow-hidden px-6 py-4">
-        <div className="grid grid-cols-3 gap-4 h-full">
+      <div className="flex-1 min-h-0 overflow-visible px-6 py-4">
+        {/* Use full available height from parent flex container to avoid clipping */}
+        <div className="grid grid-cols-3 gap-4 h-full min-h-0">
           {/* Source Tables Panel */}
           <div className="bg-white rounded-lg border shadow-sm h-full flex flex-col">
             <div className="p-3 border-b bg-gray-50 flex-shrink-0">
@@ -171,7 +172,7 @@ export const TableSelection = ({
               />
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1.5 scrollbar-thin">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 space-y-1.5 scrollbar-visible">
               {filteredSource.map((table) => {
                 const qualifiedName = table.schema
                   ? `${table.schema}.${table.name}`
@@ -246,7 +247,7 @@ export const TableSelection = ({
               )}
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1.5 scrollbar-thin">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 space-y-1.5 scrollbar-visible">
               {filteredTarget.map((table) => {
                 const qualifiedName = table.schema
                   ? `${table.schema}.${table.name}`
@@ -331,7 +332,7 @@ export const TableSelection = ({
               </p>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2 scrollbar-thin">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 space-y-2 scrollbar-visible">
               {selectedMappings.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center py-8">
                   <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">

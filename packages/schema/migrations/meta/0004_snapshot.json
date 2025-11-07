@@ -1,0 +1,15 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "id": "0004_add_strategy_column",
+  "prevId": "0003_luxuriant_guardian",
+  "tables": {},
+  "enums": {},
+  "schemas": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  }
+}
+

@@ -1,19 +1,41 @@
 {
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
+  "deno.enable": false,
+  "deno.enablePaths": [
+    "supabase/functions"
+  ],
+  "deno.lint": true,
+  "deno.unstable": [
+    "bare-node-builtins",
+    "byonm",
+    "sloppy-imports",
+    "unsafe-proto",
+    "webgpu",
+    "broadcast-channel",
+    "worker-options",
+    "cron",
+    "kv",
+    "ffi",
+    "fs",
+    "http",
+    "net"
+  ],
+  "github-actions.workflows.pinned.workflows": [
+    ".github/workflows/app-ci-cd.yml",
+    ".github/workflows/airflow-dag-ci.yml"
+  ],
+  "yaml.completion": true,
   "yaml.customTags": [
     "!reference sequence"
   ],
   "yaml.schemas": {
     "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml"
   },
-  "yaml.validate": true,
-  "yaml.completion": true,
-  "github-actions.workflows.pinned.workflows": [
-    ".github/workflows/app-ci-cd.yml",
-    ".github/workflows/airflow-dag-ci.yml"
-  ],
-  "[yaml]": {
-    "editor.insertSpaces": true,
-    "editor.tabSize": 2
-  }
+  "yaml.validate": true
 }
-
