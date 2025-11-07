@@ -3,18 +3,20 @@ import { Queue } from "bullmq";
 import { logger } from "@/lib/utils/logger";
 import { processETLJob } from "@/lib/queue/etl-worker";
 
-const REDIS_URL = process.env.REDIS_URL;
+function getETLQueue() {
+  const REDIS_URL = process.env.REDIS_URL;
 
-if (!REDIS_URL) {
-  throw new Error("REDIS_URL environment variable is not set");
+  if (!REDIS_URL) {
+    throw new Error("REDIS_URL environment variable is not set");
+  }
+
+  return new Queue("etl-pipeline", {
+    connection: {
+      url: REDIS_URL,
+      maxRetriesPerRequest: null,
+    },
+  });
 }
-
-const etlQueue = new Queue("etl-pipeline", {
-  connection: {
-    url: REDIS_URL,
-    maxRetriesPerRequest: null,
-  },
-});
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -26,6 +28,7 @@ export async function GET(request: NextRequest) {
   try {
     logger.info("🔄 [CRON] Starting job processing...");
 
+    const etlQueue = getETLQueue();
     const waitingJobs = await etlQueue.getWaiting();
     const activeJobs = await etlQueue.getActive();
 
