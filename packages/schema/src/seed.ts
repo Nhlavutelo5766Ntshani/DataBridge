@@ -29,7 +29,7 @@ async function seed() {
         email: "admin@integrove.com",
         name: "Admin User",
         role: "admin",
-        passwordHash: "$2b$10$rG3K8VhZQXZ5L8vJ0xYZXe.8QZXqJ9XQjK5mK0C1nF5Z8L0mQ1Q1K",
+        passwordHash: "$2b$10$om3w2JTKlRoY37RuR72quOjJXSZvwTWjzfRu3CEUnWVtk6VIwgPoC",
       })
       .returning();
 
@@ -39,7 +39,7 @@ async function seed() {
         email: "developer@integrove.com",
         name: "Developer User",
         role: "developer",
-        passwordHash: "$2b$10$rG3K8VhZQXZ5L8vJ0xYZXe.8QZXqJ9XQjK5mK0C1nF5Z8L0mQ1Q1K",
+        passwordHash: "$2b$10$om3w2JTKlRoY37RuR72quOjJXSZvwTWjzfRu3CEUnWVtk6VIwgPoC",
       })
       .returning();
 

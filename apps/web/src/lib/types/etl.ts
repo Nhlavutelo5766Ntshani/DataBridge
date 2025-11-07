@@ -164,7 +164,16 @@ export type StagingConfig = {
   schemaName: string;
   tablePrefix: string;
   cleanupAfterMigration: boolean;
+  autoCreate?: boolean;
 };
+
+/**
+ * Load strategy for target tables
+ * - truncate-load: Truncate target table before loading (simple, loses history)
+ * - merge: UPSERT based on primary key (updates existing, inserts new)
+ * - append: Simple INSERT (for fact tables that should accumulate)
+ */
+export type LoadStrategy = "truncate-load" | "merge" | "append";
 
 /**
  * ETL Pipeline Configuration
@@ -177,6 +186,7 @@ export type ETLPipelineConfig = {
   errorHandling: "fail-fast" | "continue-on-error" | "skip-and-log";
   validateData: boolean;
   staging: StagingConfig;
+  loadStrategy?: LoadStrategy;
   retryAttempts: number;
   retryDelayMs: number;
 };

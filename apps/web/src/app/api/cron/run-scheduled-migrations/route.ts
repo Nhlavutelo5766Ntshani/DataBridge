@@ -86,7 +86,9 @@ export async function GET(request: NextRequest) {
             schemaName: "staging",
             tablePrefix: "stg_",
             cleanupAfterMigration: false,
+            autoCreate: true,
           },
+          loadStrategy: "truncate-load",
           retryAttempts: 3,
           retryDelayMs: 5000,
         };

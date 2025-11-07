@@ -6,20 +6,18 @@ import type { TableSchema } from "@/lib/types/schema";
 import type { TransformationConfig } from "@/lib/types/transformation";
 import {
   Activity,
-  Clock,
   Columns,
   Database,
   Eye,
-  Settings,
 } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { TableSelection } from "./step1-table-selection";
 import { ColumnMapping } from "./step2-column-mapping";
-import { PipelineConfig } from "./step3-pipeline-config";
-import { ScheduleDependencies } from "./step4-schedule-dependencies";
 import { PreviewValidate } from "./step5-preview-validate";
 import { ExecutionMonitor } from "./step6-execution-monitor";
 import { WizardLayout } from "./wizard-layout";
+import { PATHS } from "@/lib/constants/paths";
 
 type Project = {
   id: string;
@@ -52,37 +50,12 @@ export const MappingWizard = ({
   sourceSchema,
   targetSchema,
 }: MappingWizardProps) => {
-  const [currentStep] = useState(0);
+  const router = useRouter();
+  const [currentStep, setCurrentStep] = useState(0);
   const [tableMappings, setTableMappings] = useState<
     Array<{ sourceTable: string; targetTable: string; confidence?: number }>
   >([]);
   const [columnMappings, setColumnMappings] = useState<TableMappingData[]>([]);
-
-  const [pipelineConfig, setPipelineConfig] = useState({
-    batchSize: 1000,
-    errorHandling: "fail-fast" as
-      | "fail-fast"
-      | "continue-on-error"
-      | "skip-and-log",
-    parallelism: 4,
-    validateData: true,
-    enableRowValidation: true,
-    enableTypeValidation: true,
-    logLevel: "info" as "debug" | "info" | "warning" | "error",
-    preMigrationHook: "",
-    postMigrationHook: "",
-  });
-
-  const [scheduleConfig, setScheduleConfig] = useState({
-    enabled: false,
-    cronExpression: "0 0 * * *",
-    timezone: "UTC",
-    slaMinutes: 60,
-    maxRetries: 3,
-    retryDelayMinutes: 5,
-    enableBackfill: false,
-    dependsOnPipelineId: null as string | null,
-  });
 
   const steps = [
     {
@@ -108,35 +81,13 @@ export const MappingWizard = ({
         : "pending") as "completed" | "current" | "pending",
     },
     {
-      id: "pipeline",
-      title: "Configure Pipeline",
-      description: "Set up performance and error handling",
-      icon: <Settings className="w-5 h-5" />,
-      status: (currentStep > 2
-        ? "completed"
-        : currentStep === 2
-        ? "current"
-        : "pending") as "completed" | "current" | "pending",
-    },
-    {
-      id: "schedule",
-      title: "Schedule & Dependencies",
-      description: "Configure when and how your pipeline runs",
-      icon: <Clock className="w-5 h-5" />,
-      status: (currentStep > 3
-        ? "completed"
-        : currentStep === 3
-        ? "current"
-        : "pending") as "completed" | "current" | "pending",
-    },
-    {
       id: "preview",
       title: "Preview & Validate",
       description: "Review data and pipeline structure",
       icon: <Eye className="w-5 h-5" />,
-      status: (currentStep > 4
+      status: (currentStep > 2
         ? "completed"
-        : currentStep === 4
+        : currentStep === 2
         ? "current"
         : "pending") as "completed" | "current" | "pending",
     },
@@ -145,7 +96,7 @@ export const MappingWizard = ({
       title: "Execute & Monitor",
       description: "Run and monitor migration progress",
       icon: <Activity className="w-5 h-5" />,
-      status: (currentStep === 5 ? "current" : "pending") as
+      status: (currentStep === 3 ? "current" : "pending") as
         | "completed"
         | "current"
         | "pending",
@@ -172,6 +123,26 @@ export const MappingWizard = ({
 
   const handleStartExecution = async () => {
     try {
+      const projectWithConfig = project as Project & {
+        etlConfig?: {
+          errorHandling?: "fail-fast" | "continue-on-error" | "skip-and-log";
+          validateData?: boolean;
+          stagingSchemaName?: string;
+          stagingTablePrefix?: string;
+          autoCreateStaging?: boolean;
+        };
+      };
+
+      const etlConfig = projectWithConfig.etlConfig || {
+        errorHandling: "fail-fast" as const,
+        validateData: true,
+        stagingSchemaName: "staging",
+        stagingTablePrefix: "stg_",
+        autoCreateStaging: true,
+      };
+
+      const executionId = `exec-${project.id}-${Date.now()}`;
+
       const response = await fetch("/api/executions/start", {
         method: "POST",
         headers: {
@@ -179,22 +150,24 @@ export const MappingWizard = ({
         },
         body: JSON.stringify({
           projectId: project.id,
-          executionId: `exec-${project.id}-${Date.now()}`,
+          executionId,
           config: {
             projectId: project.id,
-            executionId: `exec-${project.id}-${Date.now()}`,
-            batchSize: pipelineConfig.batchSize,
-            parallelism: pipelineConfig.parallelism,
-            errorHandling: pipelineConfig.errorHandling,
-            validateData: pipelineConfig.validateData,
+            executionId,
+            batchSize: 1000,
+            parallelism: 4,
+            errorHandling: etlConfig.errorHandling || "fail-fast",
+            validateData: etlConfig.validateData !== false,
             staging: {
               databaseUrl: process.env.NEXT_PUBLIC_STAGING_DATABASE_URL || "",
-              schemaName: "staging",
-              tablePrefix: "stg_",
+              schemaName: etlConfig.stagingSchemaName || "staging",
+              tablePrefix: etlConfig.stagingTablePrefix || "stg_",
               cleanupAfterMigration: false,
+              autoCreate: etlConfig.autoCreateStaging !== false,
             },
-            retryAttempts: scheduleConfig.maxRetries,
-            retryDelayMs: scheduleConfig.retryDelayMinutes * 60 * 1000,
+            loadStrategy: "truncate-load",
+            retryAttempts: 3,
+            retryDelayMs: 5 * 60 * 1000,
           },
         }),
       });
@@ -283,6 +256,23 @@ export const MappingWizard = ({
     }
   };
 
+  const handleContinue = () => {
+    console.log("Continue clicked. Current step:", currentStep, "Steps length:", steps.length);
+    if (currentStep < steps.length - 1) {
+      console.log("Moving to step:", currentStep + 1);
+      setCurrentStep(currentStep + 1);
+    } else {
+      console.log("At last step, navigating to dashboard");
+      router.push(PATHS.DASHBOARD.HOME);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
   return (
     <MappingProvider>
       <WizardLayout
@@ -291,6 +281,9 @@ export const MappingWizard = ({
         currentStep={currentStep + 1}
         totalSteps={steps.length}
         steps={steps}
+        onContinue={handleContinue}
+        onBack={handleBack}
+        canContinue={currentStep === 0 ? tableMappings.length > 0 : true}
       >
         {currentStep === 0 && (
           <TableSelection
@@ -312,28 +305,13 @@ export const MappingWizard = ({
         )}
 
         {currentStep === 2 && (
-          <PipelineConfig
-            config={pipelineConfig}
-            onConfigChange={setPipelineConfig}
-          />
-        )}
-
-        {currentStep === 3 && (
-          <ScheduleDependencies
-            config={scheduleConfig}
-            availablePipelines={[]}
-            onConfigChange={setScheduleConfig}
-          />
-        )}
-
-        {currentStep === 4 && (
           <PreviewValidate
             projectName={project.name}
             onLoadPreview={handleLoadPreview}
           />
         )}
 
-        {currentStep === 5 && (
+        {currentStep === 3 && (
           <ExecutionMonitor
             onStartExecution={handleStartExecution}
             onCheckStatus={handleCheckStatus}

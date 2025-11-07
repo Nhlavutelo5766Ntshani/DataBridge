@@ -122,3 +122,27 @@
   background-color: hsl(0 0% 95%);
   border-radius: 5px;
 }
+
+/* Visible scrollbar variant for table panels */
+div.custom-scrollbar::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+div.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+div.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #06B6D4;
+  border-radius: 7px;
+}
+
+div.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #0891b2;
+}
+
+div.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #06B6D4 #f3f4f6;
+}

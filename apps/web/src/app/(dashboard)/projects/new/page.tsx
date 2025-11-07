@@ -17,10 +17,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { WizardLayout } from "@/components/wizard/wizard-layout";
 import { ArrowRightLeft, CheckCircle2, Database, Settings } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
+import { fetchUserConnections } from "@/lib/actions/connections";
+import type { Connection } from "@/db/queries/connections";
+import { useRouter } from "next/navigation";
+import { addProject } from "@/lib/actions/projects";
+import { toast } from "sonner";
+import { TEMP_USER_ID } from "@/lib/constants/temp-data";
 
 type ProjectFormData = {
   name: string;
@@ -29,13 +36,11 @@ type ProjectFormData = {
   targetConnection: string;
   mappingStrategy: string;
   etlConfig: {
-    batchSize: number;
-    parallelism: number;
     errorHandling: "fail-fast" | "continue-on-error" | "skip-and-log";
     validateData: boolean;
-    stagingDatabaseUrl: string;
     stagingSchemaName: string;
     stagingTablePrefix: string;
+    autoCreateStaging: boolean;
   };
   scheduleConfig: {
     enabled: boolean;
@@ -45,7 +50,10 @@ type ProjectFormData = {
 };
 
 const NewProjectPage = () => {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [connections, setConnections] = useState<Connection[]>([]);
   const [formData, setFormData] = useState<ProjectFormData>({
     name: "",
     description: "",
@@ -53,13 +61,11 @@ const NewProjectPage = () => {
     targetConnection: "",
     mappingStrategy: "manual",
     etlConfig: {
-      batchSize: 1000,
-      parallelism: 4,
       errorHandling: "fail-fast",
       validateData: true,
-      stagingDatabaseUrl: process.env.NEXT_PUBLIC_STAGING_DATABASE_URL || "",
       stagingSchemaName: "staging",
       stagingTablePrefix: "stg_",
+      autoCreateStaging: true,
     },
     scheduleConfig: {
       enabled: false,
@@ -67,6 +73,16 @@ const NewProjectPage = () => {
       cronExpression: "0 * * * *",
     },
   });
+
+  useEffect(() => {
+    const loadConnections = async () => {
+      const result = await fetchUserConnections(TEMP_USER_ID);
+      if (result.success && result.data) {
+        setConnections(result.data);
+      }
+    };
+    loadConnections();
+  }, []);
 
   const steps = [
     {
@@ -131,8 +147,37 @@ const NewProjectPage = () => {
     }
   };
 
-  const handleComplete = (): void => {
-    // Form data will be handled by server action
+  const handleComplete = async (): Promise<void> => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    
+    try {
+      const result = await addProject({
+        userId: TEMP_USER_ID,
+        name: formData.name,
+        description: formData.description,
+        sourceConnectionId: formData.sourceConnection || null,
+        targetConnectionId: formData.targetConnection || null,
+        status: "draft",
+        etlConfig: formData.etlConfig,
+        scheduleEnabled: formData.scheduleConfig.enabled,
+        scheduleCron: formData.scheduleConfig.enabled ? formData.scheduleConfig.cronExpression : null,
+        scheduleInterval: formData.scheduleConfig.enabled ? formData.scheduleConfig.intervalMinutes : null,
+      });
+
+        if (result.success && result.data) {
+          toast.success("Project created successfully!");
+          router.push("/dashboard");
+        } else {
+        const errorMsg = Array.isArray(result.error) ? result.error.join(", ") : result.error || "Failed to create project";
+        toast.error(errorMsg);
+        setIsSubmitting(false);
+      }
+    } catch {
+      toast.error("An unexpected error occurred");
+      setIsSubmitting(false);
+    }
   };
 
   const updateFormData = (
@@ -172,7 +217,8 @@ const NewProjectPage = () => {
       onComplete={handleComplete}
       title="Create New Project"
       subtitle="Set up a new data migration project"
-      allowNavigation={true}
+      allowNavigation={!isSubmitting}
+      isLoading={isSubmitting}
     >
       {currentStep === 0 && (
         <div className="p-6 space-y-6">
@@ -232,11 +278,16 @@ const NewProjectPage = () => {
                     <SelectValue placeholder="Select source database" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="legacy-db">Legacy PostgreSQL</SelectItem>
-                    <SelectItem value="old-mysql">Old MySQL Server</SelectItem>
-                    <SelectItem value="oracle-prod">
-                      Oracle Production
-                    </SelectItem>
+                    {connections
+                      .filter((conn) => conn.type === "source")
+                      .map((conn) => (
+                        <SelectItem key={conn.id} value={conn.id}>
+                          {conn.name}
+                        </SelectItem>
+                      ))}
+                    {connections.filter((conn) => conn.type === "source").length === 0 && (
+                      <div className="p-2 text-sm text-gray-500">No source connections available</div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -252,15 +303,16 @@ const NewProjectPage = () => {
                     <SelectValue placeholder="Select target database" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="new-postgres">
-                      New PostgreSQL 15
-                    </SelectItem>
-                    <SelectItem value="cloud-mysql">
-                      Cloud MySQL Instance
-                    </SelectItem>
-                    <SelectItem value="azure-sql">
-                      Azure SQL Database
-                    </SelectItem>
+                    {connections
+                      .filter((conn) => conn.type === "target")
+                      .map((conn) => (
+                        <SelectItem key={conn.id} value={conn.id}>
+                          {conn.name}
+                        </SelectItem>
+                      ))}
+                    {connections.filter((conn) => conn.type === "target").length === 0 && (
+                      <div className="p-2 text-sm text-gray-500">No target connections available</div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -304,47 +356,12 @@ const NewProjectPage = () => {
 
           <Card>
             <CardHeader variant="gray">
-              <CardTitle variant="small">ETL Configuration</CardTitle>
+              <CardTitle variant="small">Migration Configuration</CardTitle>
               <CardDescription>
-                Configure performance and error handling settings
+                Configure how data is migrated and handled
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="batch-size">Batch Size</Label>
-                  <Input
-                    id="batch-size"
-                    type="number"
-                    min="100"
-                    max="10000"
-                    value={formData.etlConfig.batchSize}
-                    onChange={(e) =>
-                      updateETLConfig("batchSize", parseInt(e.target.value))
-                    }
-                  />
-                  <p className="text-xs text-gray-500">
-                    Number of records per batch (100-10000)
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="parallelism">Parallelism</Label>
-                  <Input
-                    id="parallelism"
-                    type="number"
-                    min="1"
-                    max="16"
-                    value={formData.etlConfig.parallelism}
-                    onChange={(e) =>
-                      updateETLConfig("parallelism", parseInt(e.target.value))
-                    }
-                  />
-                  <p className="text-xs text-gray-500">
-                    Concurrent workers (1-16)
-                  </p>
-                </div>
-              </div>
-
+            <CardContent className="pt-6 space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="error-handling">Error Handling</Label>
                 <Select
@@ -368,13 +385,16 @@ const NewProjectPage = () => {
                     </SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-gray-500">
+                  Choose how to handle errors during migration
+                </p>
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="space-y-0.5">
                   <Label htmlFor="validate-data">Data Validation</Label>
                   <p className="text-xs text-gray-500">
-                    Validate data after migration
+                    Validate data after migration completes
                   </p>
                 </div>
                 <Switch
@@ -386,28 +406,57 @@ const NewProjectPage = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="staging-schema">Staging Schema Name</Label>
-                <Input
-                  id="staging-schema"
-                  value={formData.etlConfig.stagingSchemaName}
-                  onChange={(e) =>
-                    updateETLConfig("stagingSchemaName", e.target.value)
-                  }
-                  placeholder="staging"
-                />
-              </div>
+              <div className="space-y-4 pt-4 border-t border-gray-200">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 mb-1">
+                    Staging Configuration
+                  </h4>
+                  <p className="text-xs text-gray-500">
+                    Source data is copied to a staging area before transformation
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="staging-prefix">Staging Table Prefix</Label>
-                <Input
-                  id="staging-prefix"
-                  value={formData.etlConfig.stagingTablePrefix}
-                  onChange={(e) =>
-                    updateETLConfig("stagingTablePrefix", e.target.value)
-                  }
-                  placeholder="stg_"
-                />
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="auto-create-staging">Auto-Create Staging</Label>
+                    <p className="text-xs text-gray-500">
+                      Automatically create staging schema and tables if they don&apos;t exist
+                    </p>
+                  </div>
+                  <Switch
+                    id="auto-create-staging"
+                    checked={formData.etlConfig.autoCreateStaging}
+                    onCheckedChange={(checked) =>
+                      updateETLConfig("autoCreateStaging", checked)
+                    }
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="staging-schema">Schema Name</Label>
+                    <Input
+                      id="staging-schema"
+                      value={formData.etlConfig.stagingSchemaName}
+                      onChange={(e) =>
+                        updateETLConfig("stagingSchemaName", e.target.value)
+                      }
+                      placeholder="staging"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="staging-prefix">Table Prefix</Label>
+                    <Input
+                      id="staging-prefix"
+                      value={formData.etlConfig.stagingTablePrefix}
+                      onChange={(e) =>
+                        updateETLConfig("stagingTablePrefix", e.target.value)
+                      }
+                      placeholder="stg_"
+                    />
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -437,44 +486,40 @@ const NewProjectPage = () => {
               </div>
 
               {formData.scheduleConfig.enabled && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="schedule-interval">
-                      Interval (minutes)
-                    </Label>
-                    <Input
-                      id="schedule-interval"
-                      type="number"
-                      min="5"
-                      max="1440"
-                      value={formData.scheduleConfig.intervalMinutes}
-                      onChange={(e) =>
-                        updateScheduleConfig(
-                          "intervalMinutes",
-                          parseInt(e.target.value)
-                        )
-                      }
-                    />
-                    <p className="text-xs text-gray-500">
-                      How often to run (5-1440 minutes)
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cron-expression">Cron Expression</Label>
-                    <Input
-                      id="cron-expression"
-                      value={formData.scheduleConfig.cronExpression}
-                      onChange={(e) =>
-                        updateScheduleConfig("cronExpression", e.target.value)
-                      }
-                      placeholder="0 * * * *"
-                    />
-                    <p className="text-xs text-gray-500">
-                      Advanced scheduling (Unix cron format)
-                    </p>
-                  </div>
-                </>
+                <div className="space-y-2">
+                  <Label htmlFor="schedule-frequency">Run Frequency</Label>
+                  <Select
+                    value={formData.scheduleConfig.intervalMinutes.toString()}
+                    onValueChange={(value) => {
+                      const minutes = parseInt(value);
+                      updateScheduleConfig("intervalMinutes", minutes);
+                      const cronExpressions: Record<number, string> = {
+                        30: "*/30 * * * *",
+                        60: "0 * * * *",
+                        360: "0 */6 * * *",
+                        720: "0 */12 * * *",
+                        1440: "0 0 * * *",
+                        10080: "0 0 * * 0",
+                      };
+                      updateScheduleConfig("cronExpression", cronExpressions[minutes] || "0 * * * *");
+                    }}
+                  >
+                    <SelectTrigger id="schedule-frequency">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">Every 30 minutes</SelectItem>
+                      <SelectItem value="60">Every 1 hour</SelectItem>
+                      <SelectItem value="360">Every 6 hours</SelectItem>
+                      <SelectItem value="720">Every 12 hours</SelectItem>
+                      <SelectItem value="1440">Daily (Every 24 hours)</SelectItem>
+                      <SelectItem value="10080">Weekly (Every 7 days)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500">
+                    Choose how often the migration should run automatically
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -482,136 +527,133 @@ const NewProjectPage = () => {
       )}
 
       {currentStep === 3 && (
-        <div className="p-6 space-y-6">
-          <Card>
-            <CardHeader variant="gray">
-              <CardTitle variant="small">Project Information</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-3">
-              <div>
-                <div className="text-sm font-medium text-gray-700">
-                  Project Name
-                </div>
-                <div className="text-sm text-gray-900">
-                  {formData.name || "Not set"}
-                </div>
+        <div className="p-8 space-y-8">
+          <div className="space-y-6">
+            <div className="flex items-start justify-between pb-4 border-b border-gray-200">
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold text-gray-900">
+                  What is your project name?
+                </h3>
+                <p className="text-sm text-gray-600">{formData.name}</p>
               </div>
-              <div>
-                <div className="text-sm font-medium text-gray-700">
-                  Description
-                </div>
-                <div className="text-sm text-gray-900">
-                  {formData.description || "Not set"}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              <Badge variant="success" className="ml-4">Answered</Badge>
+            </div>
 
-          <Card>
-            <CardHeader variant="gray">
-              <CardTitle variant="small">Connections</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-3">
-              <div>
-                <div className="text-sm font-medium text-gray-700">
-                  Source Connection
-                </div>
-                <div className="text-sm text-gray-900">
-                  {formData.sourceConnection || "Not selected"}
-                </div>
+            <div className="flex items-start justify-between pb-4 border-b border-gray-200">
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold text-gray-900">
+                  Describe the purpose of this migration
+                </h3>
+                <p className="text-sm text-gray-600">{formData.description || "No description provided"}</p>
               </div>
-              <div>
-                <div className="text-sm font-medium text-gray-700">
-                  Target Connection
-                </div>
-                <div className="text-sm text-gray-900">
-                  {formData.targetConnection || "Not selected"}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-700">
-                  Mapping Strategy
-                </div>
-                <div className="text-sm text-gray-900">
-                  {formData.mappingStrategy}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              <Badge variant="success" className="ml-4">Answered</Badge>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader variant="gray">
-              <CardTitle variant="small">ETL Configuration</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <div className="text-sm font-medium text-gray-700">
-                    Batch Size
-                  </div>
-                  <div className="text-sm text-gray-900">
-                    {formData.etlConfig.batchSize}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-gray-700">
-                    Parallelism
-                  </div>
-                  <div className="text-sm text-gray-900">
-                    {formData.etlConfig.parallelism}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-gray-700">
+              <Database className="w-4 h-4" />
+              <h3 className="text-sm font-semibold">Connections</h3>
+            </div>
+            
+            <div className="space-y-6 pl-6">
+              <div className="flex items-start justify-between pb-4 border-b border-gray-200">
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Which database will you migrate from?
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">
+                      {connections.find((c) => c.id === formData.sourceConnection)?.name || "Not selected"}
+                    </Badge>
                   </div>
                 </div>
+                <Badge variant="success" className="ml-4">Answered</Badge>
               </div>
-              <div>
-                <div className="text-sm font-medium text-gray-700">
-                  Error Handling
-                </div>
-                <div className="text-sm text-gray-900">
-                  {formData.etlConfig.errorHandling}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-700">
-                  Data Validation
-                </div>
-                <div className="text-sm text-gray-900">
-                  {formData.etlConfig.validateData ? "Enabled" : "Disabled"}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {formData.scheduleConfig.enabled && (
-            <Card>
-              <CardHeader variant="gray">
-                <CardTitle variant="small">Schedule Configuration</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-3">
-                <div>
-                  <div className="text-sm font-medium text-gray-700">
-                    Schedule Enabled
-                  </div>
-                  <div className="text-sm text-gray-900">Yes</div>
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-gray-700">
-                    Interval
-                  </div>
-                  <div className="text-sm text-gray-900">
-                    Every {formData.scheduleConfig.intervalMinutes} minutes
+              <div className="flex items-start justify-between pb-4 border-b border-gray-200">
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Which database will you migrate to?
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">
+                      {connections.find((c) => c.id === formData.targetConnection)?.name || "Not selected"}
+                    </Badge>
                   </div>
                 </div>
-                <div>
-                  <div className="text-sm font-medium text-gray-700">
-                    Cron Expression
-                  </div>
-                  <div className="text-sm text-gray-900 font-mono">
-                    {formData.scheduleConfig.cronExpression}
+                <Badge variant="success" className="ml-4">Answered</Badge>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-gray-700">
+              <Settings className="w-4 h-4" />
+              <h3 className="text-sm font-semibold">Migration Settings</h3>
+            </div>
+            
+            <div className="space-y-6 pl-6">
+              <div className="flex items-start justify-between pb-4 border-b border-gray-200">
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold text-gray-900">
+                    How should errors be handled during migration?
+                  </h3>
+                  <p className="text-sm text-gray-600 capitalize">
+                    {formData.etlConfig.errorHandling.replace(/-/g, " ")}
+                  </p>
+                </div>
+                <Badge variant="success" className="ml-4">Answered</Badge>
+              </div>
+
+              <div className="flex items-start justify-between pb-4 border-b border-gray-200">
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Should data be validated after migration?
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {formData.etlConfig.validateData ? "Yes, validate all data" : "No validation"}
+                  </p>
+                </div>
+                <Badge variant="success" className="ml-4">Answered</Badge>
+              </div>
+
+              <div className="flex items-start justify-between pb-4 border-b border-gray-200">
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Should staging tables be created automatically?
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {formData.etlConfig.autoCreateStaging ? "Yes, create automatically" : "No, use existing"}
+                  </p>
+                  <div className="mt-2 space-y-1 text-xs text-gray-500">
+                    <div>Schema: <span className="font-mono">{formData.etlConfig.stagingSchemaName}</span></div>
+                    <div>Prefix: <span className="font-mono">{formData.etlConfig.stagingTablePrefix}</span></div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+                <Badge variant="success" className="ml-4">Answered</Badge>
+              </div>
+
+              {formData.scheduleConfig.enabled && (
+                <div className="flex items-start justify-between pb-4 border-b border-gray-200">
+                  <div className="space-y-1">
+                    <h3 className="text-base font-semibold text-gray-900">
+                      How often should this migration run?
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {formData.scheduleConfig.intervalMinutes === 30 && "Every 30 minutes"}
+                      {formData.scheduleConfig.intervalMinutes === 60 && "Every 1 hour"}
+                      {formData.scheduleConfig.intervalMinutes === 360 && "Every 6 hours"}
+                      {formData.scheduleConfig.intervalMinutes === 720 && "Every 12 hours"}
+                      {formData.scheduleConfig.intervalMinutes === 1440 && "Daily (Every 24 hours)"}
+                      {formData.scheduleConfig.intervalMinutes === 10080 && "Weekly (Every 7 days)"}
+                    </p>
+                  </div>
+                  <Badge variant="success" className="ml-4">Answered</Badge>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </WizardLayout>

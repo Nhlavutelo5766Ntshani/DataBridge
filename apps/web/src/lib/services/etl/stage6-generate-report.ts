@@ -166,7 +166,7 @@ async function generateTableDetails(projectId: string): Promise<Array<{
   status: string;
 }>> {
   const tableMappings = await import("@/db").then((m) => m.db.query.tableMappings.findMany({
-    where: (tableMappings, { eq }) => eq(tableMappings.pipelineId, projectId),
+    where: (tableMappings, { eq }) => eq(tableMappings.projectId, projectId),
   }));
 
   return tableMappings.map((table) => ({

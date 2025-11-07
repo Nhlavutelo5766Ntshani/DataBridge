@@ -6,7 +6,20 @@ import { createInsertSchema } from "drizzle-zod";
 export type MappingProject = typeof mappingProjects.$inferSelect;
 export type NewMappingProject = typeof mappingProjects.$inferInsert;
 
-export const projectCreateSchema = createInsertSchema(mappingProjects);
+import { z } from "zod";
+
+export const projectCreateSchema = createInsertSchema(mappingProjects)
+  .omit({ sourceConnectionId: true, targetConnectionId: true })
+  .extend({
+    sourceConnectionId: z.any().refine(
+      (val) => val === "" || val === null || val === undefined || z.string().uuid().safeParse(val).success,
+      { message: "Must be a valid UUID or empty" }
+    ),
+    targetConnectionId: z.any().refine(
+      (val) => val === "" || val === null || val === undefined || z.string().uuid().safeParse(val).success,
+      { message: "Must be a valid UUID or empty" }
+    ),
+  });
 
 /**
  * Get project by ID
@@ -49,6 +62,14 @@ export async function createProject(
 ): Promise<MappingProject> {
   const rest = { ...projectData };
   delete rest.id;
+  
+  if (rest.sourceConnectionId === "") {
+    rest.sourceConnectionId = null;
+  }
+  if (rest.targetConnectionId === "") {
+    rest.targetConnectionId = null;
+  }
+  
   const [newProject] = await db.insert(mappingProjects).values(rest).returning();
 
   if (!newProject) {

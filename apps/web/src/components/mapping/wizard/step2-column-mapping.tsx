@@ -154,6 +154,59 @@ export const ColumnMapping = ({
     setSelectedTargetColumn(null);
   };
 
+  const handleAutoMap = () => {
+    const updatedMappings = [...mappings];
+    let tableIndex = updatedMappings.findIndex(
+      (m) =>
+        m.sourceTable === currentTableMapping.sourceTable &&
+        m.targetTable === currentTableMapping.targetTable
+    );
+
+    if (tableIndex < 0) {
+      updatedMappings.push({
+        sourceTable: currentTableMapping.sourceTable,
+        targetTable: currentTableMapping.targetTable,
+        columnMappings: [],
+      });
+      tableIndex = updatedMappings.length - 1;
+    }
+
+    const existingMappedSourceCols = new Set(
+      updatedMappings[tableIndex].columnMappings.map((m) => m.sourceColumn)
+    );
+    const existingMappedTargetCols = new Set(
+      updatedMappings[tableIndex].columnMappings.map((m) => m.targetColumn)
+    );
+
+    const newMappings = sourceTable!.columns
+      .filter((sourceCol) => !existingMappedSourceCols.has(sourceCol.name))
+      .map((sourceCol) => {
+        const matchingTarget = targetTable!.columns.find(
+          (targetCol) =>
+            targetCol.name.toLowerCase() === sourceCol.name.toLowerCase() &&
+            !existingMappedTargetCols.has(targetCol.name)
+        );
+
+        if (matchingTarget) {
+          existingMappedTargetCols.add(matchingTarget.name);
+          return {
+            sourceColumn: sourceCol.name,
+            targetColumn: matchingTarget.name,
+            sourceDataType: sourceCol.dataType,
+            targetDataType: matchingTarget.dataType,
+            transformation: null as TransformationConfig | null,
+          };
+        }
+        return null;
+      })
+      .filter((m): m is ColumnMappingData => m !== null);
+
+    if (newMappings.length > 0) {
+      updatedMappings[tableIndex].columnMappings.push(...newMappings);
+      onMappingsChange(updatedMappings);
+    }
+  };
+
   const getTypeCompatibility = (sourceType: string, targetType: string) => {
     if (sourceType === targetType) return "exact";
     if (
@@ -169,32 +222,31 @@ export const ColumnMapping = ({
   const mappedTargetColumns = new Set(columnMappings.map((m) => m.targetColumn));
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Map Columns</h2>
-        <p className="text-gray-600 mt-1">
-          Define how columns from source tables map to target tables. Add transformations as needed.
-        </p>
-      </div>
-
-      <div className="bg-[#06B6D4]/5 border border-[#06B6D4]/20 rounded-lg p-4">
-        <div className="flex gap-3">
-          <AlertCircle className="w-5 h-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-gray-700">
-            <p className="font-semibold mb-2">How to map columns:</p>
-            <ol className="list-decimal list-inside space-y-1 text-gray-600">
-              <li>Select a source column (left side) - it will highlight in cyan</li>
-              <li>Select a target column (right side) - it will highlight in teal</li>
-              <li>Click the &quot;Map&quot; button that appears between them</li>
-              <li>
-                Click <Settings className="w-3.5 h-3.5 inline mx-1" />
-                <strong>Transform</strong> button to add data transformations (type conversion, SQL
-                expressions, etc.)
-              </li>
-            </ol>
+    <>
+      {/* Fixed Header */}
+      <div className="flex-shrink-0 border-b bg-white px-6 py-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Map Columns</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Define how columns from source tables map to target tables. Add transformations as needed.
+            </p>
           </div>
+          <Button
+            onClick={handleAutoMap}
+            variant="outline"
+            size="sm"
+            disabled={!sourceTable || !targetTable}
+            className="gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            Auto-Map Columns
+          </Button>
         </div>
       </div>
+
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
 
       {tableMappings.length > 1 && (
         <div className="bg-white rounded-lg border p-4">
@@ -410,13 +462,6 @@ export const ColumnMapping = ({
             </div>
           </div>
         </div>
-
-        <div className="flex justify-center gap-3 mt-4">
-          <Button variant="outline" className="gap-2">
-            <Sparkles className="w-4 h-4" />
-            Auto-Map Columns
-          </Button>
-        </div>
       </div>
 
       <Dialog open={transformDialogOpen} onOpenChange={setTransformDialogOpen}>
@@ -436,7 +481,8 @@ export const ColumnMapping = ({
           )}
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </>
   );
 };
 

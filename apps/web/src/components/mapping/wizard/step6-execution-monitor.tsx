@@ -11,10 +11,12 @@ import {
   RefreshCw,
   Activity,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils/cn";
+import { PATHS } from "@/lib/constants/paths";
 
 type ExecutionStatus = "pending" | "running" | "completed" | "failed" | "cancelled" | "paused";
 
@@ -55,6 +57,7 @@ export const ExecutionMonitor = ({
   onResumeExecution,
   onRetryExecution,
 }: ExecutionMonitorProps) => {
+  const router = useRouter();
   const [execution, setExecution] = useState<ExecutionData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -422,8 +425,11 @@ export const ExecutionMonitor = ({
             )}
 
             {isCompleted && (
-              <Button className="bg-green-600 hover:bg-green-700 text-white">
-                View Migrated Data
+              <Button 
+                className="bg-[#06B6D4] hover:bg-[#0891b2] text-white"
+                onClick={() => router.push(PATHS.DASHBOARD.HOME)}
+              >
+                Go to Dashboard
               </Button>
             )}
           </div>
