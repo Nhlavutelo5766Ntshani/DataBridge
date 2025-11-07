@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { queueCompletePipeline } from "@/lib/queue/etl-queue";
+import { createExecutionStages } from "@/db/queries/etl-executions";
 import type { ETLPipelineConfig } from "@/lib/types/etl";
 import { logger } from "@/lib/utils/logger";
 
@@ -25,6 +26,25 @@ export async function POST(request: NextRequest) {
     }
 
     logger.info(`Starting ETL execution via API`, { projectId, executionId });
+
+    const stages = [
+      { projectId, executionId, stageId: "extract", stageName: "Extract Data", stageOrder: 1, status: "pending" },
+      { projectId, executionId, stageId: "transform", stageName: "Transform & Cleanse", stageOrder: 2, status: "pending" },
+      { projectId, executionId, stageId: "load-dimensions", stageName: "Load Dimensions", stageOrder: 3, status: "pending" },
+      { projectId, executionId, stageId: "load-facts", stageName: "Load Facts", stageOrder: 4, status: "pending" },
+      { projectId, executionId, stageId: "validate", stageName: "Validate Data", stageOrder: 5, status: "pending" },
+      { projectId, executionId, stageId: "report", stageName: "Generate Report", stageOrder: 6, status: "pending" },
+    ];
+
+    try {
+      await createExecutionStages(stages);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("duplicate key")) {
+        logger.warn(`Execution stages already exist for ${executionId}, skipping creation`);
+      } else {
+        throw error;
+      }
+    }
 
     const jobIds = await queueCompletePipeline(projectId, executionId, config);
 

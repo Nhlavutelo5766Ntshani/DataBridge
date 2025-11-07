@@ -2,17 +2,42 @@ import { fetchProject } from "@/lib/actions/projects";
 import { fetchSourceSchema, fetchTargetSchema } from "@/lib/actions/schema-discovery";
 import { MappingWizard } from "@/components/mapping/wizard/mapping-wizard";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 type PageProps = {
-  params: Promise<{ id: string }>;
+  searchParams: Promise<{ projectId?: string }>;
 };
 
 export const dynamic = "force-dynamic";
 
-const MappingWizardPage = async ({ params }: PageProps) => {
-  const { id } = await params;
+const NewMigrationPage = async ({ searchParams }: PageProps) => {
+  const { projectId } = await searchParams;
 
-  const projectResult = await fetchProject(id);
+  if (!projectId) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-50 p-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-8 max-w-md w-full text-center space-y-4">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+            <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900">No Project Selected</h2>
+          <p className="text-sm text-gray-600">
+            Please select a project to start a new migration.
+          </p>
+          <Link href="/projects">
+            <Button className="w-full">
+              Go to Projects
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const projectResult = await fetchProject(projectId);
 
   if (!projectResult.success || !projectResult.data) {
     redirect("/projects");
@@ -21,7 +46,26 @@ const MappingWizardPage = async ({ params }: PageProps) => {
   const project = projectResult.data;
 
   if (!project.sourceConnectionId || !project.targetConnectionId) {
-    redirect("/projects");
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-50 p-6">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8 max-w-md w-full space-y-4">
+          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto">
+            <svg className="w-8 h-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Project Configuration Incomplete</h2>
+          <p className="text-sm text-gray-600">
+            This project is missing source or target connections. Please configure the project before starting a migration.
+          </p>
+          <Link href={`/projects`}>
+            <Button className="w-full">
+              Back to Projects
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const [sourceSchemaResult, targetSchemaResult] = await Promise.all([
@@ -34,7 +78,7 @@ const MappingWizardPage = async ({ params }: PageProps) => {
     const targetError = !targetSchemaResult.success ? targetSchemaResult.error : null;
     
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50 p-6">
+      <div className="h-full flex items-center justify-center bg-gray-50 p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-2xl w-full space-y-4">
           <div className="flex items-start gap-3">
             <svg className="w-6 h-6 text-red-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -69,18 +113,18 @@ const MappingWizardPage = async ({ params }: PageProps) => {
               )}
               
               <div className="flex gap-3">
-                <a
+                <Link
                   href="/connections"
                   className="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors"
                 >
                   Check Connections
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/projects"
                   className="inline-flex items-center px-4 py-2 bg-white text-red-700 text-sm font-medium rounded-md border border-red-300 hover:bg-red-50 transition-colors"
                 >
                   Back to Projects
-                </a>
+                </Link>
               </div>
             </div>
           </div>
@@ -93,13 +137,15 @@ const MappingWizardPage = async ({ params }: PageProps) => {
   const targetTables = targetSchemaResult.data?.tables || [];
 
   return (
-    <MappingWizard
-      project={project}
-      sourceSchema={sourceTables}
-      targetSchema={targetTables}
-    />
+    <div className="h-full">
+      <MappingWizard
+        project={project}
+        sourceSchema={sourceTables}
+        targetSchema={targetTables}
+      />
+    </div>
   );
 };
 
-export default MappingWizardPage;
+export default NewMigrationPage;
 

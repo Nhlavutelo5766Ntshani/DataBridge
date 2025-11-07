@@ -1,7 +1,6 @@
 "use client";
 
 import { Settings, AlertTriangle, Zap, Shield, Info } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -286,20 +285,6 @@ export const PipelineConfig = ({ config, onConfigChange }: Step3Props) => {
               </div>
             </div>
           </Card>
-        </div>
-      </div>
-
-      {/* Fixed Action Buttons */}
-      <div className="flex-shrink-0 border-t bg-white px-8 py-4">
-        <div className="flex items-center justify-between">
-          <Button variant="outline">Back</Button>
-
-          <div className="flex gap-3">
-            <Button variant="outline">Cancel</Button>
-            <Button className="bg-[#06B6D4] hover:bg-[#0891b2] text-white">
-              Continue to Schedule
-            </Button>
-          </div>
         </div>
       </div>
     </>

@@ -71,14 +71,14 @@ export async function validateData(
       host: targetConn.host,
       port: targetConn.port || 5432,
       database: targetConn.database,
-      ssl: { rejectUnauthorized: false },
+      ssl: false,
     });
 
     await targetClient.connect();
     logger.success(`[Stage 5] Connected to target database`);
 
     const tableMappings = await db.query.tableMappings.findMany({
-      where: (tableMappings, { eq }) => eq(tableMappings.pipelineId, projectId),
+      where: (tableMappings, { eq }) => eq(tableMappings.projectId, projectId),
       orderBy: (tableMappings, { asc }) => [asc(tableMappings.mappingOrder)],
     });
 
