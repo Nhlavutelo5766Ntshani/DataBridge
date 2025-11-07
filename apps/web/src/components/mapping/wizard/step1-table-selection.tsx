@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useMapping } from "@/context/mapping-context";
 import type { TableSchema } from "@/lib/types/schema";
 import { cn } from "@/lib/utils/cn";
-import { ArrowRight, CheckCircle, Download, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle, Download } from "lucide-react";
 import { useState } from "react";
 
 type TableSelectionProps = {
@@ -78,6 +78,8 @@ export const TableSelection = ({
     setSelectedTargets([]);
   };
 
+  console.log("handleMapTables defined:", typeof handleMapTables);
+
   const handleSourceSelect = (tableName: string) => {
     setSelectedSource(tableName);
     setSelectedTargets([]);
@@ -138,26 +140,100 @@ export const TableSelection = ({
     linkElement.click();
   };
 
+  const handleAutoMap = () => {
+    const newMappings = filteredSource
+      .filter((sourceTable) => {
+        const sourceName = sourceTable.schema
+          ? `${sourceTable.schema}.${sourceTable.name}`
+          : sourceTable.name;
+        return !selectedMappings.some((m) => m.sourceTable === sourceName);
+      })
+      .map((sourceTable) => {
+        const sourceName = sourceTable.schema
+          ? `${sourceTable.schema}.${sourceTable.name}`
+          : sourceTable.name;
+        const matchingTarget = filteredTarget.find(
+          (targetTable) => targetTable.name === sourceTable.name
+        );
+        if (matchingTarget) {
+          const targetName = matchingTarget.schema
+            ? `${matchingTarget.schema}.${matchingTarget.name}`
+            : matchingTarget.name;
+          return { sourceTable: sourceName, targetTable: targetName };
+        }
+        return null;
+      })
+      .filter((m): m is { sourceTable: string; targetTable: string } => m !== null);
+
+    if (newMappings.length > 0) {
+      onMappingsChange([...selectedMappings, ...newMappings]);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Fixed Header */}
-      <div className="flex-shrink-0 border-b bg-white px-6 py-4">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">
-            Select Tables to Migrate
-          </h2>
-          <p className="text-sm text-gray-600 mt-2">
-            Choose source tables and map them to one or more target tables. One
-            source table can map to multiple target tables for data breakout
-            scenarios.
-          </p>
+    <>
+      <style dangerouslySetInnerHTML={{__html: `
+        .table-scroll-area {
+          overflow-y: auto !important;
+          max-height: 500px !important;
+        }
+        .table-scroll-area::-webkit-scrollbar {
+          width: 10px;
+        }
+        .table-scroll-area::-webkit-scrollbar-track {
+          background: #e5e7eb;
+        }
+        .table-scroll-area::-webkit-scrollbar-thumb {
+          background: #06B6D4;
+          border-radius: 5px;
+        }
+        .table-scroll-area::-webkit-scrollbar-thumb:hover {
+          background: #0891b2;
+        }
+        .table-scroll-area {
+          scrollbar-width: thin;
+          scrollbar-color: #06B6D4 #e5e7eb;
+        }
+      `}} />
+      <div className="flex flex-col h-full">
+        {/* Fixed Header */}
+        <div className="flex-shrink-0 border-b bg-white px-6 py-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                Select Tables to Migrate
+              </h2>
+              <p className="text-sm text-gray-600 mt-2">
+                Choose source tables and map them to one or more target tables. One
+                source table can map to multiple target tables for data breakout
+                scenarios.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleAutoMap}
+                variant="outline"
+                size="sm"
+                disabled={filteredSource.length === 0 || filteredTarget.length === 0}
+              >
+                Auto map all tables
+              </Button>
+              <Button
+                onClick={handleMapTables}
+                size="sm"
+                disabled={
+                  !selectedSource || selectedTargets.length === 0
+                }
+              >
+                Map selected tables
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
 
       {/* Scrollable Three-Panel Content Area */}
-      <div className="flex-1 min-h-0 overflow-visible px-6 py-4">
-        {/* Use full available height from parent flex container to avoid clipping */}
-        <div className="grid grid-cols-3 gap-4 h-full min-h-0">
+      <div className="flex-1 overflow-hidden px-6 py-4">
+        <div className="grid grid-cols-3 gap-4 h-full">
           {/* Source Tables Panel */}
           <div className="bg-white rounded-lg border shadow-sm h-full flex flex-col">
             <div className="p-3 border-b bg-gray-50 flex-shrink-0">
@@ -172,7 +248,9 @@ export const TableSelection = ({
               />
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 space-y-1.5 scrollbar-visible">
+            <div 
+              className="flex-1 min-h-0 overflow-x-hidden p-3 space-y-1.5 table-scroll-area"
+            >
               {filteredSource.map((table) => {
                 const qualifiedName = table.schema
                   ? `${table.schema}.${table.name}`
@@ -247,7 +325,9 @@ export const TableSelection = ({
               )}
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 space-y-1.5 scrollbar-visible">
+            <div 
+              className="flex-1 min-h-0 overflow-x-hidden p-3 space-y-1.5 table-scroll-area"
+            >
               {filteredTarget.map((table) => {
                 const qualifiedName = table.schema
                   ? `${table.schema}.${table.name}`
@@ -332,7 +412,9 @@ export const TableSelection = ({
               </p>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 space-y-2 scrollbar-visible">
+            <div 
+              className="flex-1 min-h-0 overflow-x-hidden p-3 space-y-2 table-scroll-area"
+            >
               {selectedMappings.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center py-8">
                   <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
@@ -439,39 +521,6 @@ export const TableSelection = ({
         </div>
       </div>
 
-      {/* Fixed Action Buttons at Bottom */}
-      <div className="flex-shrink-0 border-t bg-white px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="h-9">
-              Cancel
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2 h-9">
-              <Sparkles className="w-4 h-4" />
-              Auto-Map All Tables
-            </Button>
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              onClick={handleMapTables}
-              disabled={!selectedSource || selectedTargets.length === 0}
-              size="sm"
-              className="bg-[#06B6D4] hover:bg-[#0891b2] text-white h-9"
-            >
-              Map Selected Tables
-            </Button>
-
-            <Button
-              size="sm"
-              className="bg-[#06B6D4] hover:bg-[#0891b2] text-white h-9"
-            >
-              Continue
-            </Button>
-          </div>
-        </div>
-      </div>
-
       {/* Mapping Details Drawer */}
       <MappingDetailsDrawer
         isOpen={isDrawerOpen}
@@ -496,6 +545,7 @@ export const TableSelection = ({
         }}
         onExport={handleExportMappings}
       />
-    </div>
+      </div>
+    </>
   );
 };

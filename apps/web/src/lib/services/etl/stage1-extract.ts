@@ -76,8 +76,12 @@ export async function extractToStaging(
 
     logger.success(`[Stage 1] Connected to source database`);
 
+    if (config.staging.autoCreate) {
+      await ensureStagingSchemaExists(config.staging.schemaName);
+    }
+
     const tableMappingsResult = await db.query.tableMappings.findMany({
-      where: (tableMappings, { eq }) => eq(tableMappings.pipelineId, projectId),
+      where: (tableMappings, { eq }) => eq(tableMappings.projectId, projectId),
       orderBy: (tableMappings, { asc }) => [asc(tableMappings.mappingOrder)],
     });
 
@@ -114,6 +118,8 @@ export async function extractToStaging(
           config.staging.schemaName
         );
         tablesCreated++;
+
+        await truncateStagingTable(stagingTableName, config.staging.schemaName);
 
         const tableRecords = await extractTableData(
           sqlConnection,
@@ -222,6 +228,25 @@ async function createStagingTable(
 
   await db.execute(drizzleSql.raw(createTableSQL));
   logger.info(`Created staging table: ${schemaName}.${stagingTable}`);
+}
+
+/**
+ * Truncate staging table before loading fresh data
+ */
+async function truncateStagingTable(
+  stagingTable: string,
+  schemaName: string
+): Promise<void> {
+  try {
+    const truncateSQL = `TRUNCATE TABLE ${schemaName}.${stagingTable}`;
+    await db.execute(drizzleSql.raw(truncateSQL));
+    logger.info(`[Stage 1] Truncated staging table: ${schemaName}.${stagingTable}`);
+  } catch (error) {
+    logger.warn(`[Stage 1] Could not truncate staging table (may not exist yet)`, {
+      table: `${schemaName}.${stagingTable}`,
+      error,
+    });
+  }
 }
 
 /**
@@ -337,4 +362,18 @@ function mapSqlServerTypeToPostgres(sqlServerType: string, maxLength: number | n
   };
 
   return typeMap[sqlServerType.toLowerCase()] || "TEXT";
+}
+
+/**
+ * Ensure staging schema exists in target database
+ */
+async function ensureStagingSchemaExists(schemaName: string): Promise<void> {
+  try {
+    const createSchemaSQL = `CREATE SCHEMA IF NOT EXISTS ${schemaName}`;
+    await db.execute(drizzleSql.raw(createSchemaSQL));
+    logger.success(`[Stage 1] Ensured staging schema exists: ${schemaName}`);
+  } catch (error) {
+    logger.error(`[Stage 1] Failed to create staging schema`, error);
+    throw error;
+  }
 }

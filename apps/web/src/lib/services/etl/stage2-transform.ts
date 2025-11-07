@@ -41,7 +41,7 @@ export async function transformAndCleanse(
     }
 
     const tableMappings = await db.query.tableMappings.findMany({
-      where: (tableMappings, { eq }) => eq(tableMappings.pipelineId, projectId),
+      where: (tableMappings, { eq }) => eq(tableMappings.projectId, projectId),
       orderBy: (tableMappings, { asc }) => [asc(tableMappings.mappingOrder)],
     });
 

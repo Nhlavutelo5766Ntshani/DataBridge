@@ -172,18 +172,25 @@ const ExecutionHistory = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            Execution History
+            Migrations
           </h1>
           <p className="text-gray-500 mt-1">
-            View and monitor all migration executions
+            Execute and monitor data migrations
           </p>
         </div>
-        <Button onClick={fetchExecutions} disabled={refreshing}>
-          <RefreshCw
-            className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </Button>
+        <div className="flex gap-3">
+          <Button onClick={fetchExecutions} disabled={refreshing} variant="outline">
+            <RefreshCw
+              className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </Button>
+          <Link href="/projects">
+            <Button>
+              Start New Migration
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Card>

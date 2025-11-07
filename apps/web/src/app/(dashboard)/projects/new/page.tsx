@@ -166,10 +166,10 @@ const NewProjectPage = () => {
         scheduleInterval: formData.scheduleConfig.enabled ? formData.scheduleConfig.intervalMinutes : null,
       });
 
-      if (result.success && result.data) {
-        toast.success("Project created successfully! Setting up mapping wizard...");
-        router.push(`/projects/${result.data.id}/mapping`);
-      } else {
+        if (result.success && result.data) {
+          toast.success("Project created successfully!");
+          router.push("/dashboard");
+        } else {
         const errorMsg = Array.isArray(result.error) ? result.error.join(", ") : result.error || "Failed to create project";
         toast.error(errorMsg);
         setIsSubmitting(false);

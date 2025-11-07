@@ -59,14 +59,14 @@ export async function loadDimensions(
       host: targetConn.host,
       port: targetConn.port || 5432,
       database: targetConn.database,
-      ssl: { rejectUnauthorized: false },
+      ssl: false,
     });
 
     await targetClient.connect();
     logger.success(`[Stage 3] Connected to target database`);
 
     const tableMappings = await db.query.tableMappings.findMany({
-      where: (tableMappings, { eq }) => eq(tableMappings.pipelineId, projectId),
+      where: (tableMappings, { eq }) => eq(tableMappings.projectId, projectId),
       orderBy: (tableMappings, { asc }) => [asc(tableMappings.mappingOrder)],
     });
 
@@ -110,7 +110,8 @@ export async function loadDimensions(
           tableMapping.targetTable,
           columnMappings,
           config.staging.schemaName,
-          config.errorHandling
+          config.errorHandling,
+          config.loadStrategy || "truncate-load"
         );
 
         await targetClient.query("COMMIT");
@@ -188,19 +189,26 @@ async function loadDimensionTable(
     targetColumn: string;
   }>,
   schemaName: string,
-  errorHandling: string
+  errorHandling: string,
+  loadStrategy: "truncate-load" | "merge" | "append"
 ): Promise<number> {
   const sourceColumns = columnMappings.map((m) => `"${m.sourceColumn}"`).join(", ");
   const targetColumns = columnMappings.map((m) => `"${m.targetColumn}"`).join(", ");
 
-  const insertSQL = `
-    INSERT INTO ${targetTable} (${targetColumns})
-    SELECT ${sourceColumns}
-    FROM ${schemaName}.${stagingTable}
-  `;
-
   try {
+    if (loadStrategy === "truncate-load") {
+      logger.info(`[Stage 3] Truncating target table: ${targetTable}`);
+      await client.query(`TRUNCATE TABLE ${targetTable}`);
+    }
+
+    const insertSQL = `
+      INSERT INTO ${targetTable} (${targetColumns})
+      SELECT ${sourceColumns}
+      FROM ${schemaName}.${stagingTable}
+    `;
+
     const result = await client.query(insertSQL);
+    logger.success(`[Stage 3] Loaded ${result.rowCount} records into ${targetTable}`);
     return result.rowCount || 0;
   } catch (error) {
     logger.error(`Failed to load dimension table ${targetTable}`, { error });

@@ -9,11 +9,10 @@
   ],
   "scripts": {
     "dev": "yarn workspace @databridge/web dev",
-    "dev:worker": "yarn workspace @databridge/migration-worker dev",
+    "dev:worker": "yarn workspace @databridge/web dev:worker",
     "dev:all": "concurrently \"yarn dev\" \"yarn dev:worker\"",
     "build": "yarn workspaces foreach -A run build",
     "build:web": "yarn workspace @databridge/web build",
-    "build:worker": "yarn workspace @databridge/migration-worker build",
     "db:generate": "yarn workspace @databridge/schema db:generate",
     "db:migrate": "yarn workspace @databridge/schema db:migrate",
     "db:deploy": "yarn workspace @databridge/schema db:deploy",

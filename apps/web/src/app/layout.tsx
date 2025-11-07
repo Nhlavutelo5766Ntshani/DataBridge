@@ -6,8 +6,15 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "DataBridge - Integrove",
+  title: "DataBridge",
   description: "Visual Data Migration and Mapping Platform for Integrove",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: "/apple-icon.png",
+  },
 };
 
 type RootLayoutProps = {

@@ -35,11 +35,14 @@ export const WizardLayout = ({
   totalSteps,
   steps,
   children,
+  onBack,
+  onContinue,
+  canContinue = true,
 }: WizardLayoutProps) => {
   const progressPercentage = Math.round((currentStep / totalSteps) * 100);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50">
       <header className="flex h-16 shrink-0 items-center justify-between bg-white shadow z-50 relative px-6">
         <div className="flex items-center gap-3">
           <Link href={`/projects/${projectId}`}>
@@ -94,9 +97,9 @@ export const WizardLayout = ({
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-visible p-4 h-[calc(100vh-64px)]">
-        <div className="flex gap-4 flex-1 max-w-[1600px] mx-auto w-full">
-          <aside className="w-80 bg-white rounded-lg shadow-sm border border-gray-200 flex-shrink-0 flex flex-col min-h-0">
+      <div className="flex-1 flex overflow-hidden p-4 min-h-0">
+        <div className="flex gap-4 flex-1 max-w-[1600px] mx-auto w-full min-h-0">
+          <aside className="w-80 bg-white rounded-lg shadow-sm border border-gray-200 flex-shrink-0 flex flex-col h-full">
             <div className="p-6 border-b bg-gray-50 flex-shrink-0">
               <h2 className="text-base font-semibold text-gray-900 mb-1">
                 Migration Steps
@@ -106,7 +109,7 @@ export const WizardLayout = ({
               </p>
             </div>
 
-            <nav className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
+            <nav className="flex-1 overflow-y-auto p-4 space-y-2">
               {steps.map((step, index) => {
                 const stepNumber = index + 1;
                 const isCompleted = step.status === "completed";
@@ -178,7 +181,7 @@ export const WizardLayout = ({
             </nav>
           </aside>
 
-          <main className="flex-1 flex flex-col overflow-visible bg-white rounded-lg shadow-sm border border-gray-200 min-h-0">
+          <main className="flex-1 flex flex-col overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200 h-full">
             {children}
           </main>
         </div>
@@ -190,9 +193,10 @@ export const WizardLayout = ({
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
+              size="sm"
+              onClick={onBack || (() => {
                 if (typeof window !== "undefined") window.history.back();
-              }}
+              })}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
@@ -200,6 +204,7 @@ export const WizardLayout = ({
             <Button
               type="button"
               variant="ghost"
+              size="sm"
               className="text-gray-600 hover:text-gray-900"
               onClick={() => {
                 if (typeof window !== "undefined") window.history.back();
@@ -209,8 +214,14 @@ export const WizardLayout = ({
             </Button>
           </div>
           <div>
-            <Button type="button" className="bg-primary hover:bg-primary/90 text-white">
-              Continue
+            <Button 
+              type="button"
+              size="sm"
+              className="bg-primary hover:bg-primary/90 text-white"
+              onClick={onContinue}
+              disabled={!canContinue}
+            >
+              {currentStep === totalSteps ? "Finish" : "Continue"}
             </Button>
           </div>
         </div>
