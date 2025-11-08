@@ -45,16 +45,14 @@ export async function getUserById(userId: string): Promise<User | undefined> {
  * @returns Created user
  */
 export async function createUser(userData: NewUser): Promise<User> {
-  const { name, email, passwordHash, role, isActive } = userData;
-  
   const [newUser] = await db
     .insert(users)
     .values({ 
-      name, 
-      email: email.toLowerCase(), 
-      passwordHash, 
-      role, 
-      isActive 
+      name: userData.name,
+      email: userData.email.toLowerCase(), 
+      passwordHash: userData.passwordHash,
+      role: userData.role || "developer",
+      isActive: userData.isActive ?? true
     })
     .returning();
 
