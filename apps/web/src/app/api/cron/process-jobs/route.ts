@@ -20,8 +20,10 @@ function getETLQueue() {
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
+  const CRON_SECRET = process.env.CRON_SECRET;
   
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+    logger.warn("⚠️ [CRON] Unauthorized access attempt");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
