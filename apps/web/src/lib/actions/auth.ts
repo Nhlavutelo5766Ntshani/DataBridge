@@ -69,6 +69,8 @@ export async function signupAction(
       data: { userId: user.id },
     };
   } catch (error) {
+    console.error("[SIGNUP] Error details:", error);
+    
     if (error instanceof z.ZodError) {
       return createErrorResponse(
         error.errors[0].message,
@@ -77,6 +79,8 @@ export async function signupAction(
     }
 
     if (error instanceof Error) {
+      console.error("[SIGNUP] Error message:", error.message);
+      console.error("[SIGNUP] Error stack:", error.stack);
       return createErrorResponse(error.message, ERROR_CODES.DB_ERROR);
     }
 
