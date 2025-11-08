@@ -45,14 +45,17 @@ export async function getUserById(userId: string): Promise<User | undefined> {
  * @returns Created user
  */
 export async function createUser(userData: NewUser): Promise<User> {
-  const rest = { ...userData };
-  delete rest.id;
-  
-  const emailLower = rest.email.toLowerCase();
+  const { name, email, passwordHash, role, isActive } = userData;
   
   const [newUser] = await db
     .insert(users)
-    .values({ ...rest, email: emailLower })
+    .values({ 
+      name, 
+      email: email.toLowerCase(), 
+      passwordHash, 
+      role, 
+      isActive 
+    })
     .returning();
 
   if (!newUser) {
