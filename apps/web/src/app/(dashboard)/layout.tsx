@@ -5,7 +5,10 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
-  title: "Dashboard - DataBridge",
+  title: {
+    default: "DataBridge",
+    template: "%s | DataBridge",
+  },
   description: "Manage your data migrations and mappings",
 };
 
