@@ -10,10 +10,8 @@ export const metadata: Metadata = {
   description: "Visual Data Migration and Mapping Platform for Integrove",
   icons: {
     icon: [
-      { url: "/favicon.ico" },
-      { url: "/icon.png", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
     ],
-    apple: "/apple-icon.png",
   },
 };
 
