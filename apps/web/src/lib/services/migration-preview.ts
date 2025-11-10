@@ -196,7 +196,7 @@ async function fetchSQLServerData(
     user: connection.username,
     password: connection.password,
     options: {
-      encrypt: false,
+      encrypt: true,
       trustServerCertificate: true,
       connectTimeout: 10000,
     },
@@ -319,7 +319,7 @@ async function getSQLServerRowCount(
     user: connection.username,
     password: connection.password,
     options: {
-      encrypt: false,
+      encrypt: true,
       trustServerCertificate: true,
       connectTimeout: 10000,
     },

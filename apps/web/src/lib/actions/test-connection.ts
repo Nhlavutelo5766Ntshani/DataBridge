@@ -29,6 +29,8 @@ export async function testDatabaseConnection(
   params: ConnectionTestParams
 ): Promise<QueryResponse<{ message: string }>> {
   try {
+    logger.info("Testing database connection", { dbType: params.dbType, host: params.host, port: params.port });
+    
     const { dbType, host, port, database, username, password } = params;
     const normalizedType = dbType.toLowerCase();
 
@@ -68,8 +70,23 @@ export async function testDatabaseConnection(
       code: ERROR_CODES.INVALID_FORMAT,
     };
   } catch (error) {
-    logger.error("Connection test failed", error);
-    return createErrorResponse("testDatabaseConnection", error);
+    logger.error("Connection test failed - outer catch", { error, params });
+    
+    if (error instanceof Error) {
+      return {
+        success: false,
+        data: null,
+        error: `Connection test failed: ${error.message}`,
+        code: ERROR_CODES.DB_ERROR,
+      };
+    }
+    
+    return {
+      success: false,
+      data: null,
+      error: "An unexpected error occurred while testing the connection. Please check the server logs.",
+      code: ERROR_CODES.DB_ERROR,
+    };
   }
 }
 
@@ -93,6 +110,7 @@ async function testPostgreSQL(
   const client = postgres(connectionString, {
     max: 1,
     connect_timeout: 10,
+    ssl: 'prefer',
   });
 
   try {
@@ -161,21 +179,25 @@ async function testSQLServer(
     user: username,
     password,
     options: {
-      encrypt: false,
-      trustServerCertificate: true,
+      encrypt: true,
+      trustServerCertificate: false,
       connectTimeout: 10000,
     },
   };
 
   try {
+    logger.info("Testing SQL Server connection", { host, port, database, username });
     const pool = await sql.connect(config);
     await pool.request().query("SELECT 1 as test");
     await pool.close();
     
+    logger.success("SQL Server connection successful", { host, port, database });
     return createSuccessResponse({
       message: "SQL Server connection successful!",
     });
   } catch (error: unknown) {
+    logger.error("SQL Server connection failed", { error, host, port, database });
+    
     if (error instanceof Error) {
       if (error.message.includes("Login failed")) {
         return {
@@ -190,7 +212,7 @@ async function testSQLServer(
         return {
           success: false,
           data: null,
-          error: "Connection refused. Please check the host and port.",
+          error: `Connection refused. Please verify the host (${host}) and port (${port}) are correct.`,
           code: ERROR_CODES.CONNECTION_FAILED,
         };
       }
@@ -199,13 +221,43 @@ async function testSQLServer(
         return {
           success: false,
           data: null,
-          error: "Database does not exist. Please check the database name.",
+          error: `Database '${database}' does not exist. Please check the database name.`,
           code: ERROR_CODES.NOT_FOUND,
         };
       }
+      
+      if (error.message.includes("ETIMEOUT") || error.message.includes("timeout")) {
+        return {
+          success: false,
+          data: null,
+          error: "Connection timeout. The database server might be unreachable or too slow to respond.",
+          code: ERROR_CODES.CONNECTION_FAILED,
+        };
+      }
+      
+      if (error.message.includes("EENCRYPT")) {
+        return {
+          success: false,
+          data: null,
+          error: "Encryption error. Azure SQL requires encrypted connections. Please ensure SSL is enabled.",
+          code: ERROR_CODES.CONNECTION_FAILED,
+        };
+      }
+      
+      return {
+        success: false,
+        data: null,
+        error: `SQL Server connection failed: ${error.message}`,
+        code: ERROR_CODES.CONNECTION_FAILED,
+      };
     }
     
-    return createErrorResponse("testSQLServer", error);
+    return {
+      success: false,
+      data: null,
+      error: "An unexpected error occurred while testing the connection. Please check your connection details.",
+      code: ERROR_CODES.DB_ERROR,
+    };
   }
 }
 
@@ -235,6 +287,9 @@ async function testMySQL(
       user: username,
       password,
       connectTimeout: 10000,
+      ssl: {
+        rejectUnauthorized: false,
+      },
     });
     
     await connection.query("SELECT 1 as test");
@@ -300,6 +355,8 @@ async function testMongoDB(
   const uri = `mongodb://${username}:${password}@${host}:${port}/${database}`;
   const client = new MongoClient(uri, {
     serverSelectionTimeoutMS: 10000,
+    tls: true,
+    tlsAllowInvalidCertificates: true,
   });
 
   try {
@@ -353,7 +410,8 @@ async function testCouchDB(
   username: string,
   password: string
 ): Promise<QueryResponse<{ message: string }>> {
-  const url = `http://${username}:${password}@${host}:${port}`;
+  const protocol = port === 6984 || port === 443 ? 'https' : 'http';
+  const url = `${protocol}://${username}:${password}@${host}:${port}`;
   const client = nano(url);
 
   try {

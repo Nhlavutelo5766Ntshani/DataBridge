@@ -28,6 +28,7 @@ import { useRouter } from "next/navigation";
 import { addProject } from "@/lib/actions/projects";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { PATHS } from "@/lib/constants/paths";
 
 type ProjectFormData = {
   name: string;
@@ -170,8 +171,8 @@ const NewProjectPage = () => {
       });
 
         if (result.success && result.data) {
-          toast.success("Project created successfully!");
-          router.push("/dashboard");
+          toast.success("Project created successfully! You can now start mapping and migrations.");
+          router.push(PATHS.DASHBOARD.PROJECTS);
         } else {
         const errorMsg = Array.isArray(result.error) ? result.error.join(", ") : result.error || "Failed to create project";
         toast.error(errorMsg);

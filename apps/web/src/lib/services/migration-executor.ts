@@ -303,7 +303,7 @@ async function fetchSQLServerBatch(
     user: connection.username,
     password: connection.password,
     options: {
-      encrypt: false,
+      encrypt: true,
       trustServerCertificate: true,
       connectTimeout: 10000,
     },
@@ -432,7 +432,7 @@ async function insertSQLServerBatch(
     user: connection.username,
     password: connection.password,
     options: {
-      encrypt: false,
+      encrypt: true,
       trustServerCertificate: true,
       connectTimeout: 10000,
     },
@@ -530,7 +530,7 @@ async function getTableRowCount(
         user: connection.username,
         password: connection.password,
         options: {
-          encrypt: false,
+          encrypt: true,
           trustServerCertificate: true,
           connectTimeout: 10000,
         },
