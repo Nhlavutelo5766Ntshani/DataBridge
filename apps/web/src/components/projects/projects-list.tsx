@@ -34,7 +34,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchUserProjects } from "@/lib/actions/projects";
 import { PATHS } from "@/lib/constants/paths";
-import { TEMP_USER_ID } from "@/lib/constants/temp-data";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { useProject } from "@/context/project-context";
 
 type Project = {
@@ -50,20 +50,23 @@ type Project = {
 };
 
 export const ProjectsList = (): JSX.Element => {
+  const { userId } = useCurrentUser();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { openDetailsDrawer, openEditDrawer } = useProject();
 
   useEffect(() => {
     const loadProjects = async (): Promise<void> => {
+      if (!userId) return;
+      
       try {
-        const result = await fetchUserProjects(TEMP_USER_ID);
+        const result = await fetchUserProjects(userId);
         if (result.success && result.data) {
           setProjects(result.data);
         } else {
           toast.error("Failed to load projects");
         }
-      } catch (error) {
+      } catch {
         toast.error("An error occurred while loading projects");
       } finally {
         setIsLoading(false);
@@ -71,14 +74,14 @@ export const ProjectsList = (): JSX.Element => {
     };
 
     loadProjects();
-  }, []);
+  }, [userId]);
 
   const totalProjects = projects.length;
   const inProgressProjects = projects.filter((p) => p.status === "in_progress").length;
   const completedProjects = projects.filter((p) => p.status === "completed").length;
   const draftProjects = projects.filter((p) => p.status === "draft").length;
 
-  const handleDelete = (_projectId: string): void => {
+  const handleDelete = (): void => {
     toast.error("Delete functionality coming soon");
   };
 
@@ -320,7 +323,7 @@ export const ProjectsList = (): JSX.Element => {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleDelete(project.id)}
+                            onClick={() => handleDelete()}
                             className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />

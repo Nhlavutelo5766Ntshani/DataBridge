@@ -19,9 +19,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useConnection } from "@/context/connection-context";
 import { addConnection } from "@/lib/actions/connections";
 import { testDatabaseConnection } from "@/lib/actions/test-connection";
-import { TEMP_USER_ID } from "@/lib/constants/temp-data";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 export const ConnectionCreateForm = (): JSX.Element => {
+  const { userId } = useCurrentUser();
   const { closeDrawer } = useConnection();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -74,10 +75,16 @@ export const ConnectionCreateForm = (): JSX.Element => {
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setError("");
+    
+    if (!userId) {
+      toast.error("Please log in to continue");
+      return;
+    }
+    
     setIsLoading(true);
 
     const result = await addConnection({
-      userId: TEMP_USER_ID,
+      userId,
       name: formData.name,
       type: formData.connectionType,
       dbType: formData.type,

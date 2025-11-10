@@ -15,7 +15,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConnection } from "@/context/connection-context";
 import { fetchUserConnections } from "@/lib/actions/connections";
-import { TEMP_USER_ID } from "@/lib/constants/temp-data";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 type Connection = {
   id: string;
@@ -29,20 +29,23 @@ type Connection = {
 };
 
 export const ConnectionsList = (): JSX.Element => {
+  const { userId } = useCurrentUser();
   const { openCreateDrawer, openDetailsDrawer } = useConnection();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadConnections = async (): Promise<void> => {
-      const result = await fetchUserConnections(TEMP_USER_ID);
+      if (!userId) return;
+      
+      const result = await fetchUserConnections(userId);
       if (result.success && result.data) {
         setConnections(result.data);
       }
       setIsLoading(false);
     };
     loadConnections();
-  }, []);
+  }, [userId]);
 
   const activeCount = connections.filter((c) => c.isActive).length;
   const dbTypes = new Set(connections.map((c) => c.dbType)).size;
