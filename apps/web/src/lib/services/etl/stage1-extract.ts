@@ -61,7 +61,7 @@ export async function extractToStaging(
       port: sourceConn.port || 1433,
       database: sourceConn.database,
       options: {
-        encrypt: false,
+        encrypt: true,
         trustServerCertificate: true,
         enableArithAbort: true,
         requestTimeout: 3000000,

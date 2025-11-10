@@ -170,6 +170,13 @@ export async function logoutAction(): Promise<void> {
  */
 export async function getSessionAction() {
   const session = await getSession();
-  return session;
+  
+  return {
+    userId: session.userId,
+    email: session.email,
+    name: session.name,
+    role: session.role,
+    isLoggedIn: session.isLoggedIn,
+  };
 }
 
