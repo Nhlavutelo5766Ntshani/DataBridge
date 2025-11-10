@@ -23,7 +23,7 @@ import { ConnectionDrawer } from "@/components/connections/connection-drawer";
 import { ConnectionProvider, useConnection } from "@/context/connection-context";
 import { fetchUserConnections } from "@/lib/actions/connections";
 import { fetchUserProjects } from "@/lib/actions/projects";
-import { getCurrentUser } from "@/lib/auth/session";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { PATHS } from "@/lib/constants/paths";
 
 type DashboardStats = {
@@ -34,6 +34,7 @@ type DashboardStats = {
 };
 
 const DashboardContent = () => {
+  const { userId } = useCurrentUser();
   const { openCreateDrawer } = useConnection();
   const [stats, setStats] = useState<DashboardStats>({
     activeConnections: 0,
@@ -44,13 +45,12 @@ const DashboardContent = () => {
 
   useEffect(() => {
     const loadStats = async () => {
+      if (!userId) return;
+      
       try {
-        const user = await getCurrentUser();
-        if (!user?.userId) return;
-
         const [connectionsRes, projectsRes] = await Promise.all([
-          fetchUserConnections(user.userId),
-          fetchUserProjects(user.userId),
+          fetchUserConnections(userId),
+          fetchUserProjects(userId),
         ]);
 
         const activeConnections = connectionsRes.success && connectionsRes.data
@@ -72,7 +72,7 @@ const DashboardContent = () => {
       }
     };
     loadStats();
-  }, []);
+  }, [userId]);
 
   const statsConfig = [
     {
