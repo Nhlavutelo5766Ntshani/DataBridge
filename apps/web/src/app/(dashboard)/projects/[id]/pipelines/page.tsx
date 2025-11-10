@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { TEMP_USER_ID } from "@/lib/constants/temp-data";
+import { getCurrentUser } from "@/lib/auth/session";
 
 type PipelinePageProps = {
   params: Promise<{ id: string }>;
@@ -18,6 +18,12 @@ type PipelinePageProps = {
 
 const PipelinePage = async ({ params }: PipelinePageProps) => {
   const { id } = await params;
+  const user = await getCurrentUser();
+  
+  if (!user?.userId) {
+    notFound();
+  }
+  
   const projectResult = await fetchProject(id);
   
   if (!projectResult.success || !projectResult.data) {
@@ -28,7 +34,7 @@ const PipelinePage = async ({ params }: PipelinePageProps) => {
   
   const [pipelinesResult, connectionsResult, scheduleResult] = await Promise.all([
     fetchProjectPipelines(id),
-    fetchUserConnections(TEMP_USER_ID),
+    fetchUserConnections(user.userId),
     fetchProjectSchedule(id),
   ]);
 

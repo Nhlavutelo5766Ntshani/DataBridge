@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 import { addConnection } from "@/lib/actions/connections";
 import { testDatabaseConnection } from "@/lib/actions/test-connection";
-import { TEMP_USER_ID } from "@/lib/constants/temp-data";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import { PATHS } from "@/lib/constants/paths";
 
 const NewConnectionPage = () => {
   const router = useRouter();
+  const { userId } = useCurrentUser();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isTesting, setIsTesting] = useState(false);
@@ -84,10 +85,17 @@ const NewConnectionPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (!userId) {
+      toast.error("Please log in to continue");
+      router.push("/login");
+      return;
+    }
+
     setIsLoading(true);
 
     const result = await addConnection({
-      userId: TEMP_USER_ID,
+      userId,
       name: formData.name,
       type: formData.connectionType,
       dbType: formData.type,
@@ -105,9 +113,22 @@ const NewConnectionPage = () => {
       toast.success("Connection created successfully!");
       router.push(PATHS.DASHBOARD.CONNECTIONS);
     } else {
-      const errorMessage = Array.isArray(result.error)
-        ? result.error.join(", ")
-        : result.error || "Failed to create connection";
+      let errorMessage = "Failed to create connection. Please check your details and try again.";
+      
+      if (Array.isArray(result.error)) {
+        errorMessage = result.error.join(", ");
+      } else if (typeof result.error === "string") {
+        if (result.error.includes("foreign key")) {
+          errorMessage = "Unable to save connection. Please try logging out and back in.";
+        } else if (result.error.includes("unique")) {
+          errorMessage = "A connection with this name already exists. Please use a different name.";
+        } else if (result.error.includes("connection")) {
+          errorMessage = "Could not connect to the database. Please verify your connection details.";
+        } else {
+          errorMessage = result.error;
+        }
+      }
+      
       toast.error(errorMessage);
       setError(errorMessage);
     }

@@ -27,7 +27,7 @@ import type { Connection } from "@/db/queries/connections";
 import { useRouter } from "next/navigation";
 import { addProject } from "@/lib/actions/projects";
 import { toast } from "sonner";
-import { TEMP_USER_ID } from "@/lib/constants/temp-data";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 type ProjectFormData = {
   name: string;
@@ -51,6 +51,7 @@ type ProjectFormData = {
 
 const NewProjectPage = () => {
   const router = useRouter();
+  const { userId } = useCurrentUser();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -76,13 +77,15 @@ const NewProjectPage = () => {
 
   useEffect(() => {
     const loadConnections = async () => {
-      const result = await fetchUserConnections(TEMP_USER_ID);
+      if (!userId) return;
+      
+      const result = await fetchUserConnections(userId);
       if (result.success && result.data) {
         setConnections(result.data);
       }
     };
     loadConnections();
-  }, []);
+  }, [userId]);
 
   const steps = [
     {
@@ -148,13 +151,13 @@ const NewProjectPage = () => {
   };
 
   const handleComplete = async (): Promise<void> => {
-    if (isSubmitting) return;
+    if (isSubmitting || !userId) return;
 
     setIsSubmitting(true);
     
     try {
       const result = await addProject({
-        userId: TEMP_USER_ID,
+        userId,
         name: formData.name,
         description: formData.description,
         sourceConnectionId: formData.sourceConnection || null,
