@@ -19,42 +19,77 @@ All code must be:
 - Enterprise-ready with proper transaction management and data integrity
 - Fully implemented, not conceptual or simplified
 
-## 🚨 CRITICAL: READ-ONLY FILES
+## 🚨 CRITICAL: READ-ONLY FILE PROTECTION
 
-**NEVER DIRECTLY EDIT:**
+**NEVER DIRECTLY EDIT THE FOLLOWING FILES - THEY ARE READ-ONLY:**
 
-- Schema files (`packages/schema/`)
-- Migration files (`packages/schema/migrations/`)
-- Config files (`.env`, `package.json`, `next.config.js`, `tailwind.config.ts`, `drizzle.config.ts`)
-- `.cursorrules` (this file)
+### Database Schema & Migration Files
+- `packages/schema/src/schema.ts` - Database schema definitions
+- `packages/schema/src/constants.ts` - Schema constants
+- `packages/schema/src/relations.ts` - Table relations
+- `packages/schema/migrations/*.sql` - Migration SQL files
+- `packages/schema/migrations/meta/*.json` - Migration metadata
+- `packages/schema/drizzle.config.ts` - Drizzle configuration
 
-**BEHAVIOR:** Read for context only. If changes needed, tell user what to do and provide CLI commands.
+### Configuration Files
+- `package.json` files - Dependency management (root and workspace)
+- `next.config.js` - Next.js configuration
+- `tailwind.config.ts` - Tailwind configuration
+- `tsconfig.json` - TypeScript configuration
+- `yarn.lock` - Dependency lock file
+- `postcss.config.js` - PostCSS configuration
+- `components.json` - Shadcn/ui configuration
+
+### Environment & Security Files
+- `.env*` files - Environment variables and secrets
+- `.cursorrules` - AI behavior rules (this file)
+- `vercel.json` - Deployment configuration
+- `.gitignore` - Git ignore rules
+
+### Critical Behavior Rules:
+1. **READ ONLY**: You may read and reference these files for context
+2. **NEVER MODIFY**: Do not use edit tools on these files under any circumstances
+3. **INFORM USER**: If changes are needed, explicitly tell the user what needs to be done
+4. **PROVIDE COMMANDS**: Include the specific CLI commands they need to run
+5. **EXPLAIN IMPACT**: Explain why the change is needed and potential consequences
+
+### If Schema Changes Are Needed:
+```bash
+# User must run these commands manually:
+yarn db:generate    # Generate migration files
+yarn db:deploy      # Deploy migrations to database
+yarn db:studio      # Open Drizzle Studio to verify
+```
+
+### If Configuration Changes Are Needed:
+- Tell the user exactly which file to edit
+- Provide the exact changes needed
+- Explain why the change is necessary
+- Include any restart/rebuild commands required
 
 ## 🚫 NEVER DO
 
 ### Code Quality
-
 - ❌ No hardcoded or mock data
-- ❌ No console.log or debugging statements
+- ❌ No console.log or debugging statements in production code
 - ❌ No inline comments (use JSDoc instead)
 - ❌ No inline type definitions (use shared types)
 - ❌ No hardcoded values (use constants or config)
 - ❌ No `any` type — use explicit TypeScript types
 - ❌ No classes (use functional patterns)
+- ❌ No unnecessary curly braces in conditionals
 
 ### Architecture
-
 - ❌ Never edit read-only schema files
 - ❌ Never create new functions without checking for existing ones
 - ❌ Never skip error handling
-- ❌ Never use console.log in production code
 - ❌ Never use 'use server' in query layer files
 - ❌ Never put business logic in query layer
+- ❌ Never mix server and client component logic
 
 ## ✅ ALWAYS DO
 
 ### Documentation & Types
-
 - ✅ Use JSDoc comments for all functions, types, and utilities (exclude UI components)
 - ✅ Use explicit TypeScript types for all state variables
 - ✅ Use shared types from `src/lib/types/`
@@ -62,9 +97,9 @@ All code must be:
 - ✅ Use function keyword for utilities
 - ✅ Use types over interfaces
 - ✅ Never use `any` type
+- ✅ Create separate type definition files (types.ts) for complex schemas
 
 ### Architecture & Structure
-
 - ✅ Follow 3-layer architecture: Schema (READ-ONLY) → Queries (pure DB ops) → Actions (server actions)
 - ✅ Review CONTRIBUTING.md and schema before implementing changes
 - ✅ Check existing functions before creating new ones
@@ -74,220 +109,226 @@ All code must be:
 - ✅ Actions layer: Include 'use server', handle errors, return QueryResponse<T>
 
 ### Error Handling
-
 - ✅ Use standardized error handling (`createErrorResponse`)
 - ✅ Use early returns to avoid deep nesting
 - ✅ Provide user-friendly error messages
 - ✅ Implement graceful fallbacks for failures
 - ✅ Use centralized error codes from `error-codes.ts`
+- ✅ Handle errors at the beginning of functions
+- ✅ Avoid unnecessary else statements; use if-return pattern
 
 ### File Organization
-
-- ✅ Organize files: main component → subcomponents → helpers → static content → types
+- ✅ Organize files: exported component → subcomponents → helpers → static content → types
 - ✅ Use named exports for all components
 - ✅ Keep complex schemas in separate `types.ts` files
 - ✅ Structure: `packages/schema/` (shared), `apps/web/src/db/queries/`, `apps/web/src/lib/actions/`
+- ✅ Use lowercase with dashes for directories (e.g., `components/mapping-canvas`)
 
 ### React & Components
-
 - ✅ Prefer functional components over classes
 - ✅ Use descriptive variable names (isLoading, hasError, etc.)
 - ✅ Define props with type aliases, not interface
 - ✅ Follow consistent naming conventions
 - ✅ Prefer Server Components where possible
 - ✅ Use Client Components only for interactivity
+- ✅ Use declarative JSX with Server and Client Components appropriately marked
 
 ### Next.js Patterns
-
 - ✅ Use Server Components for data fetching
 - ✅ Follow App Router conventions
 - ✅ Include clear loading and error states for each route
 - ✅ Use server actions for form submissions and mutations
 - ✅ Leverage Suspense boundaries for loading states
+- ✅ Use route groups for logical organization
+- ✅ Implement proper error boundaries
 
 ### Database & API
-
 - ✅ Use server actions for form submissions and mutations
 - ✅ Implement Zod validation for runtime and type-safe checks
 - ✅ Handle transactions properly for multi-step operations
 - ✅ Use Drizzle ORM for all database operations
 - ✅ Always destructure `id` when creating/updating: `const { id, ...rest } = data`
+- ✅ Implement proper indexing for frequently queried columns
+- ✅ Use connection pooling for database operations
 
 ### Security
-
 - ✅ Sanitize all inputs to prevent XSS
 - ✅ Include authentication and authorization checks
 - ✅ Use environment variables for sensitive data
 - ✅ Consider rate limiting for APIs
 - ✅ Encrypt database connection credentials
+- ✅ Use Next.js middleware for authentication checks
+- ✅ Implement CSRF protection for form submissions
 
 ### Performance
-
 - ✅ Reduce client-side JavaScript (prefer server components)
 - ✅ Use memoization (React.memo, useMemo, useCallback) appropriately
 - ✅ Apply code splitting with dynamic imports
 - ✅ Optimize database queries for speed and efficiency
 - ✅ Use connection pooling for database operations
+- ✅ Use Next.js Image component for optimized images
+- ✅ Implement proper caching strategies in data fetching functions
+- ✅ Prioritize Web Vitals (LCP, FID, CLS)
 
 ## 🎯 Code Style Standards
 
-### TypeScript
-
-- Use strict mode
-- Types over interfaces
-- No enums (use const objects with "as const")
-- Explicit types for state variables
-- Zod for runtime validation
+### TypeScript Usage
+- Use TypeScript for all code and prefer types over interfaces, never use type any
+- Write JSDoc comments for all functions, types, and utilities (excluding components)
+- Props should always be defined using type definitions, not interfaces
+- Always add explicit types for state variables unless they can be clearly inferred from simple initializers
+- Avoid enums; use const objects with "as const" and typeof instead
+- Use arrow functions with TypeScript types for React components
+- Use strict mode in TypeScript for better type safety
+- Leverage Zod for runtime validation and TypeScript type inference
 
 ### Component Pattern
 
 ```typescript
-// Server component
-const MappingList = async ({ userId }: { userId: string }) => {
-  const result = await fetchUserMappingProjects(userId);
+// Server component example
+const MigrationList = async ({ userId }: { userId: string }) => {
+  const result = await fetchUserMigrations(userId);
   return <div>{/* ... */}</div>;
 };
 
-// Client component
-("use client");
-const InteractiveMapper = ({
-  onMap,
-}: {
-  onMap: (data: MappingData) => void;
-}) => {
-  return <div>{/* ... */}</div>;
+// Client component example
+"use client";
+
+const MigrationForm = ({ onSubmit }: { onSubmit: (data: FormData) => void }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  return <form>{/* ... */}</form>;
 };
 ```
 
 ### Naming Conventions
-
-- Lowercase with dashes for directories (e.g., `components/mapping-canvas`)
-- Named exports for components
-- `page.tsx` for routes, `layout.tsx` for layouts
-- Query functions: `get`, `create`, `update`, `delete`
+- Use lowercase with dashes for directories (e.g., `components/mapping-canvas`)
+- Favor named exports for components
+- Use `page.tsx` for route components and `layout.tsx` for layouts
+- Name API routes according to their function (e.g., `route.ts` for REST endpoints)
+- Query functions: `get`, `create`, `update`, `delete` + entity name
 - Action functions: `fetch`, `add`, `update`, `delete` + entity name
 
-## Code Style and Structure
-
-- Write concise, technical TypeScript code with accurate examples.
-- Use arrow functions for React components, use the "function" keyword only for utility functions.
-- Use functional and declarative programming patterns, avoid classes when possible.
-- Prefer iteration and modularization over code duplication.
-- Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError).
-- Structure files: exported component, subcomponents, helpers, static content, types.
-- Follow Next.js App Router conventions for file organization and routing.
-- Leverage server components where appropriate to reduce client-side JavaScript.
-
-## Naming Conventions
-
-- Use lowercase with dashes for directories (e.g., components/mapping-canvas).
-- Favor named exports for components.
-- Use page.tsx for route components and layout.tsx for layouts in the App Router.
-- Name API routes according to their function (e.g., route.ts for REST endpoints).
-
-## TypeScript Usage
-
-- Use TypeScript for all code and prefer types over interfaces, never use type any.
-- Write JSDoc comments for all functions, types, and utilities (excluding components).
-- Props should always be defined using type definitions, not interfaces.
-- Always add explicit types for state variables unless they can be clearly inferred from simple initializers.
-- Avoid enums; use const objects with "as const" and typeof instead.
-- Use arrow functions with TypeScript types for React components.
-- Use strict mode in TypeScript for better type safety.
-- Create separate type definition files (types.ts) for complex schemas.
-- Leverage Zod for runtime validation and TypeScript type inference.
+### Syntax and Formatting
+- Avoid unnecessary curly braces in conditionals; use concise syntax for simple statements
+- Use declarative JSX with Server and Client Components appropriately marked
+- Use Prettier for consistent code formatting
+- Keep component props types at the top of the file or in separate types file
+- Use early returns for error conditions to avoid deeply nested if statements
 
 ## UI and Styling
 
-- Use Tailwind CSS with consistent class ordering.
-- Implement responsive design with Tailwind breakpoint utilities.
-- Create reusable UI components in a separate directory.
-- Use CSS variables for theming and maintaining a consistent design system.
-- Ensure high accessibility (a11y) standards using ARIA roles and semantic HTML.
-- Utilize Tailwind dark mode support with the 'dark:' prefix.
-- Use CSS Grid for complex layouts and Flexbox for simpler alignments.
+- Use Tailwind CSS with consistent class ordering
+- Implement responsive design with Tailwind breakpoint utilities
+- Create reusable UI components in a separate directory
+- Use CSS variables for theming and maintaining a consistent design system
+- Ensure high accessibility (a11y) standards using ARIA roles and semantic HTML
+- Utilize Tailwind dark mode support with the 'dark:' prefix
+- Use CSS Grid for complex layouts and Flexbox for simpler alignments
+
+### Integrove Brand Colors
+- Primary (Cyan): `#06B6D4` (HSL: 188.74 94.5% 42.8%)
+- Secondary (Teal): `#32DBBC` (HSL: 168.99 70.12% 52.75%)
+
+Use these colors consistently throughout the application. Avoid purple gradients or typical AI design patterns.
 
 ## Performance Optimization
 
-- Minimize the use of client-side useState and useEffect; prefer server components where possible.
-- Use Next.js Image component for optimized images.
-- Implement proper code splitting with dynamic imports.
-- Utilize React.memo, useMemo, and useCallback appropriately to prevent unnecessary re-renders.
-- Take advantage of Next.js built-in optimizations like automatic static optimization.
-- Use Suspense boundaries strategically for loading states.
-- Implement proper caching strategies in data fetching functions.
+- Minimize the use of client-side useState and useEffect; prefer server components where possible
+- Use Next.js Image component for optimized images
+- Implement proper code splitting with dynamic imports
+- Utilize React.memo, useMemo, and useCallback appropriately to prevent unnecessary re-renders
+- Take advantage of Next.js built-in optimizations like automatic static optimization
+- Use Suspense boundaries strategically for loading states
+- Implement proper caching strategies in data fetching functions
+- Prioritize Web Vitals (LCP, FID, CLS) for performance optimization
 
 ## Navigation
 
-- Use Next.js App Router for routing and navigation.
-- Leverage Link component for client-side navigation.
-- Implement dynamic routes using the [param] folder naming convention.
-- Use route groups for logical organization without affecting the URL structure.
-- Implement proper loading and error states for each route.
-- Use intercepting routes for modal patterns.
-- Leverage parallel routes for complex layouts with independent navigation states.
+- Use Next.js App Router for routing and navigation
+- Leverage Link component for client-side navigation
+- Implement dynamic routes using the [param] folder naming convention
+- Use route groups for logical organization without affecting the URL structure
+- Implement proper loading and error states for each route
+- Use intercepting routes for modal patterns
+- Leverage parallel routes for complex layouts with independent navigation states
 
 ## State Management
 
-- Use React Context and useReducer for managing global state.
-- Always define explicit types for state, unless using simple initializers with clear inference.
-- Utilize React Query (@tanstack/react-query) for data fetching and caching.
-- Consider Zustand for more complex state management needs.
-- Use URL search parameters for shareable and bookmarkable state.
-- Leverage server actions for form submissions and data mutations.
-- Implement optimistic updates for a better user experience.
+- Use React Context and useReducer for managing global state
+- Always define explicit types for state, unless using simple initializers with clear inference
+- Utilize React Query (@tanstack/react-query) for data fetching and caching
+- Consider Zustand for more complex state management needs
+- Use URL search parameters for shareable and bookmarkable state
+- Leverage server actions for form submissions and data mutations
+- Implement optimistic updates for a better user experience
 
 ## Database Management
 
 **⚠️ IMPORTANT: Schema files are READ-ONLY. Never edit `packages/schema/` files directly.**
 
-- Follow the three-layer architecture pattern:
-  1. **Schema Layer** (`packages/schema/src/schema.ts`): ⚠️ READ-ONLY - Tell user to edit manually
-  2. **Query Layer** (`apps/web/src/db/queries/*.ts`): Implement pure database operations that:
-     - Do not handle errors (let them bubble up)
-     - Return direct database types
-     - Create and export Zod schemas using `createInsertSchema` and `createUpdateSchema`
-     - Use explicit type exports at the top of files
-  3. **Actions Layer** (`apps/web/src/lib/actions/*.ts`): Implement server actions that:
-     - Handle error management using try/catch with `createErrorResponse`
-     - Implement validation using Zod schemas
-     - Process form data with `parseFormData` utility
-     - Return consistent `QueryResponse<T>` type
+### Three-Layer Architecture Pattern:
+
+1. **Schema Layer** (`packages/schema/src/schema.ts`): ⚠️ READ-ONLY
+   - Tell user to edit manually
+   - Provide CLI commands for migrations
+
+2. **Query Layer** (`apps/web/src/db/queries/*.ts`):
+   - Implement pure database operations
+   - Do not handle errors (let them bubble up)
+   - Return direct database types
+   - Create and export Zod schemas using `createInsertSchema` and `createUpdateSchema`
+   - Use explicit type exports at the top of files
+   - No 'use server' directive
+
+3. **Actions Layer** (`apps/web/src/lib/actions/*.ts`):
+   - Include 'use server' directive
+   - Handle error management using try/catch with `createErrorResponse`
+   - Implement validation using Zod schemas
+   - Process form data with `parseFormData` utility
+   - Return consistent `QueryResponse<T>` type
+
+### Database Best Practices:
 - Use Drizzle ORM with PostgreSQL for type-safe database operations
 - Create migration scripts for schema changes
 - Implement proper indexing for frequently queried columns
 - Use transactions for operations that require multiple related changes
+- Use connection pooling for database operations
+- Optimize queries for large datasets (millions of rows)
 
 ## Error Handling and Validation
 
-- Use Zod for runtime validation and error handling.
-- Implement proper error logging using a service like Sentry.
+- Use Zod for runtime validation and error handling
+- Implement proper error logging using a service like Sentry
 - Prioritize error handling and edge cases:
-  - Handle errors at the beginning of functions.
-  - Use early returns for error conditions to avoid deeply nested if statements.
-  - Avoid unnecessary else statements; use if-return pattern instead.
-  - Implement error boundaries to catch and handle unexpected errors.
-- Create consistent error response formats for API routes.
-- Add descriptive error messages for better debugging.
+  - Handle errors at the beginning of functions
+  - Use early returns for error conditions to avoid deeply nested if statements
+  - Avoid unnecessary else statements; use if-return pattern instead
+  - Implement error boundaries to catch and handle unexpected errors
+- Create consistent error response formats for API routes
+- Add descriptive error messages for better debugging
+- Use centralized error codes from `error-codes.ts`
+- Provide user-friendly error messages
 
 ## Security
 
-- Sanitize user inputs to prevent XSS attacks.
-- Use Next.js middleware for authentication and authorization checks.
-- Implement CSRF protection for form submissions.
-- Ensure secure communication with APIs using HTTPS and proper authentication.
-- Store sensitive configuration in environment variables.
-- Implement proper rate limiting for API routes.
+- Sanitize user inputs to prevent XSS attacks
+- Use Next.js middleware for authentication and authorization checks
+- Implement CSRF protection for form submissions
+- Ensure secure communication with APIs using HTTPS and proper authentication
+- Store sensitive configuration in environment variables
+- Implement proper rate limiting for API routes
+- Encrypt database connection credentials
+- Use environment variables for sensitive data
 
 ## Testing
 
-- Write unit tests for ALL utility functions.
-- Write tests for complex React components, focusing on user interactions and business logic.
-- Implement integration tests for critical user flows.
-- Use MSW (Mock Service Worker) for API mocking.
-- Implement E2E tests with Playwright or Cypress.
-- Create test utilities for common testing patterns.
-- Set up CI/CD pipeline for automated testing.
+- Write unit tests for ALL utility functions
+- Write tests for complex React components, focusing on user interactions and business logic
+- Implement integration tests for critical user flows
+- Use MSW (Mock Service Worker) for API mocking
+- Implement E2E tests with Playwright or Cypress
+- Create test utilities for common testing patterns
+- Set up CI/CD pipeline for automated testing
 
 ## 🗣 Communication Standards
 
@@ -295,19 +336,72 @@ const InteractiveMapper = ({
 - ✅ Avoid mentioning internal tools (describe actions naturally)
 - ✅ Provide clear explanations of what was implemented
 - ✅ Don't mention "apply model" or internal AI processes
+- ✅ Use professional, technical language appropriate for enterprise development
 
 ## 📦 Monorepo Structure
 
 ```
 DataBridge/
 ├── apps/
-│   ├── web/                    # Next.js application
-│   └── migration-worker/       # Background worker service
+│   ├── web/                          # Next.js application
+│   │   ├── src/
+│   │   │   ├── app/                  # Next.js App Router routes
+│   │   │   │   ├── (auth)/           # Authentication routes
+│   │   │   │   │   ├── login/
+│   │   │   │   │   └── signup/
+│   │   │   │   ├── (dashboard)/      # Protected dashboard routes
+│   │   │   │   │   ├── dashboard/
+│   │   │   │   │   ├── connections/
+│   │   │   │   │   ├── projects/
+│   │   │   │   │   ├── migrations/
+│   │   │   │   │   ├── reports/
+│   │   │   │   │   └── settings/
+│   │   │   │   └── api/              # API routes
+│   │   │   │       ├── cron/
+│   │   │   │       └── webhooks/
+│   │   │   ├── components/           # React components
+│   │   │   │   ├── ui/               # Reusable UI components
+│   │   │   │   ├── layout/           # Layout components
+│   │   │   │   ├── mapping/          # Mapping components
+│   │   │   │   └── connections/      # Connection components
+│   │   │   ├── db/                   # Database layer
+│   │   │   │   ├── index.ts          # Database client
+│   │   │   │   ├── queries/          # Query layer (pure DB ops)
+│   │   │   │   └── types/            # Database types
+│   │   │   ├── lib/                  # Library code
+│   │   │   │   ├── actions/          # Server actions
+│   │   │   │   ├── services/         # Business logic services
+│   │   │   │   ├── utils/            # Utility functions
+│   │   │   │   ├── constants/        # Constants
+│   │   │   │   ├── transformations/  # Data transformations
+│   │   │   │   ├── queue/            # BullMQ queue management
+│   │   │   │   └── auth/             # Authentication
+│   │   │   ├── context/              # React contexts
+│   │   │   ├── hooks/                # Custom React hooks
+│   │   │   └── middleware.ts         # Next.js middleware
+│   │   ├── package.json
+│   │   ├── next.config.js
+│   │   └── tailwind.config.ts
+│   └── migration-worker/             # Background worker service
 ├── packages/
-│   └── schema/                 # Shared database schema (READ-ONLY)
-├── docs/                       # Documentation
-├── scripts/                    # Utility scripts
-└── package.json               # Root workspace config
+│   └── schema/                       # Shared database schema (READ-ONLY)
+│       ├── src/
+│       │   ├── schema.ts             # Drizzle schema definitions
+│       │   ├── relations.ts          # Table relations
+│       │   ├── constants.ts          # Schema constants
+│       │   └── seed.ts               # Database seeder
+│       ├── migrations/               # Database migrations
+│       ├── drizzle.config.ts         # Drizzle configuration
+│       └── package.json
+├── docs/                             # Documentation
+│   ├── ARCHITECTURE.md
+│   ├── CONTRIBUTING.md
+│   ├── DEVELOPMENT.md
+│   ├── ERROR_HANDLING.md
+│   └── ETL_PIPELINE.md
+├── scripts/                          # Utility scripts
+├── package.json                      # Root workspace config
+└── .cursorrules                      # AI behavior rules
 ```
 
 ## 🛠 Development Commands
@@ -317,9 +411,9 @@ DataBridge/
 yarn
 
 # Development
-yarn dev                    # Start web app
+yarn dev                    # Start web app (localhost:3000)
 yarn dev:worker            # Start migration worker
-yarn dev:all               # Start both
+yarn dev:all               # Start both web and worker
 
 # Build
 yarn build                 # Build all applications
@@ -328,13 +422,14 @@ yarn build:worker         # Build worker only
 
 # Database
 yarn db:generate          # Generate Drizzle migrations
-yarn db:deploy            # Deploy migrations
-yarn db:studio            # Open Drizzle Studio
-yarn db:seed              # Seed database
+yarn db:deploy            # Deploy migrations to database
+yarn db:studio            # Open Drizzle Studio (database GUI)
+yarn db:seed              # Seed database with sample data
 
-# Linting
+# Linting & Type Checking
 yarn lint                 # Lint all applications
 yarn lint:fix:all        # Fix linting issues
+yarn typecheck           # TypeScript type checking
 
 # Testing
 yarn test                 # Run all tests
@@ -355,17 +450,25 @@ Follow the git workflow from `docs/GIT_WORKFLOW.md`:
 
 ## 📚 Key Documentation Files
 
-- `docs/SETUP.md` - Installation and setup
-- `docs/ARCHITECTURE.md` - System architecture
-- `docs/CONTRIBUTING.md` - Contribution guidelines
-- `docs/ERROR_HANDLING.md` - Error handling patterns
-- `docs/GIT_WORKFLOW.md` - Git branching strategy
-- `docs/MAPPING_GUIDE.md` - Visual mapping guide
+- `docs/ARCHITECTURE.md` - System architecture and design patterns
+- `docs/CONTRIBUTING.md` - Contribution guidelines and coding standards
+- `docs/DEVELOPMENT.md` - Development setup and best practices
+- `docs/ERROR_HANDLING.md` - Error handling patterns and utilities
+- `docs/ETL_PIPELINE.md` - ETL pipeline architecture and stages
 
-## 🎨 Integrove Brand Colors
+## Key Conventions
 
-Primary (Cyan): #06B6D4 (HSL: 188.74 94.5% 42.8%)
-Secondary (Teal): #32DBBC (HSL: 168.99 70.12% 52.75%)
-
-Use these colors consistently throughout the application. Avoid purple gradients or typical AI design patterns.
-
+1. Follow Next.js 15 App Router conventions for routing and data fetching
+2. Use yarn workspaces for monorepo management
+3. Prioritize Web Vitals (LCP, FID, CLS) for performance optimization
+4. Use environment variables for configuration management
+5. Implement proper error boundaries and fallback UIs
+6. Leverage server components for improved performance and reduced bundle size
+7. Follow the principles of progressive enhancement
+8. Use the three-layer database architecture pattern (Schema → Queries → Actions)
+9. Implement consistent error handling with standardized response formats
+10. Use Zod validation for forms and data processing
+11. Maintain separation of concerns between layers
+12. Use shared schema package for consistent database types
+13. Implement production-grade code for large-scale data migrations
+14. Optimize for handling millions of rows with batch processing and streaming
