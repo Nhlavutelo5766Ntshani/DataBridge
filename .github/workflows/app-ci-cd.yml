@@ -1,5 +1,11 @@
 name: DataBridge App CI/CD
 
+# Pipeline Stages:
+# 1. 🔧 Setup Dependencies - Install all dependencies and cache node_modules
+# 2. 🗃️ Build Shared Packages - Build schema package and cache output
+# 3. ✅ Validate and Build Applications - Lint, type check, and build web app
+# 4. 🚀 Deploy - Deploy to Vercel (dev or prod) only after successful build
+#
 # Note: Linter warnings about optional secrets/variables (VERCEL_TOKEN, DATABASE_URL, etc.)
 # are expected and safe to ignore until you configure them in:
 # GitHub Settings → Secrets and variables → Actions
@@ -31,8 +37,8 @@ env:
   YARN_VERSION: '4.9.1'
 
 jobs:
-  build-and-test:
-    name: Build and Test
+  setup:
+    name: 🔧 Setup Dependencies
     runs-on: ubuntu-latest
 
     steps:
@@ -67,8 +73,75 @@ jobs:
           # Confirm esbuild is installed for the current platform (some esbuild installs trigger platform fetch)
           npx --yes esbuild --version || true
 
+      - name: Cache node_modules
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+
+  build-schema:
+    name: 🗃️ Build Shared Packages
+    needs: setup
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+
       - name: Build schema package
         run: yarn workspace @databridge/schema build
+
+      - name: Cache schema build
+        uses: actions/cache/save@v4
+        with:
+          path: packages/schema/dist
+          key: schema-build-${{ runner.os }}-${{ github.sha }}
+
+  validate-and-build:
+    name: ✅ Validate and Build Applications
+    needs: build-schema
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+
+      - name: Restore schema build
+        uses: actions/cache/restore@v4
+        with:
+          path: packages/schema/dist
+          key: schema-build-${{ runner.os }}-${{ github.sha }}
 
       - name: Lint code
         run: yarn lint
@@ -82,9 +155,15 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder' }}
           SKIP_ENV_VALIDATION: true
 
+      - name: Cache web build
+        uses: actions/cache/save@v4
+        with:
+          path: apps/web/.next
+          key: web-build-${{ runner.os }}-${{ github.sha }}
+
   deploy-dev:
-    name: Deploy to Development
-    needs: build-and-test
+    name: 🚀 Deploy to Development
+    needs: validate-and-build
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: development
@@ -169,8 +248,8 @@ jobs:
           echo "Author: ${{ github.actor }}"
 
   deploy-prod:
-    name: Deploy to Production
-    needs: build-and-test
+    name: 🚀 Deploy to Production
+    needs: validate-and-build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: production
