@@ -43,7 +43,19 @@ export async function signupAction(
     };
 
     const validatedData = signupSchema.parse(rawData);
-    const supabase = await createClient();
+    
+    let supabase;
+    try {
+      supabase = await createClient();
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("Missing Supabase")) {
+        return createErrorResponse(
+          "Server configuration error. Please contact support.",
+          ERROR_CODES.SERVER_ERROR
+        );
+      }
+      throw error;
+    }
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: validatedData.email,
@@ -56,8 +68,9 @@ export async function signupAction(
     });
 
     if (authError) {
+      console.error("Supabase signup error:", authError);
       return createErrorResponse(
-        authError.message,
+        authError.message || "Failed to create account",
         ERROR_CODES.AUTH_ERROR
       );
     }
@@ -69,16 +82,21 @@ export async function signupAction(
       );
     }
 
-    const existingUser = await getUserByEmail(validatedData.email);
-    if (!existingUser) {
-      await createUser({
-        id: authData.user.id,
-        name: validatedData.name,
-        email: validatedData.email.toLowerCase(),
-        passwordHash: "",
-        role: "developer",
-        isActive: true,
-      });
+    try {
+      const existingUser = await getUserByEmail(validatedData.email);
+      if (!existingUser) {
+        await createUser({
+          id: authData.user.id,
+          name: validatedData.name,
+          email: validatedData.email.toLowerCase(),
+          passwordHash: "",
+          role: "developer",
+          isActive: true,
+        });
+      }
+    } catch (dbError) {
+      console.error("Database error during user creation:", dbError);
+      throw dbError;
     }
 
     return {
@@ -86,6 +104,8 @@ export async function signupAction(
       data: { userId: authData.user.id },
     };
   } catch (error) {
+    console.error("Signup action error:", error);
+    
     if (error instanceof z.ZodError) {
       return createErrorResponse(
         error.errors[0].message,
@@ -105,6 +125,13 @@ export async function signupAction(
         return createErrorResponse(
           "An account with this email already exists",
           ERROR_CODES.VALIDATION_ERROR
+        );
+      }
+      
+      if (error.message.includes("relation") && error.message.includes("does not exist")) {
+        return createErrorResponse(
+          "Database setup incomplete. Please contact support.",
+          ERROR_CODES.DB_ERROR
         );
       }
     }
@@ -131,7 +158,19 @@ export async function loginAction(
     };
 
     const validatedData = loginSchema.parse(rawData);
-    const supabase = await createClient();
+    
+    let supabase;
+    try {
+      supabase = await createClient();
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("Missing Supabase")) {
+        return createErrorResponse(
+          "Server configuration error. Please contact support.",
+          ERROR_CODES.SERVER_ERROR
+        );
+      }
+      throw error;
+    }
 
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: validatedData.email,
