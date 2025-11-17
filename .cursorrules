@@ -57,7 +57,7 @@ All code must be:
 ```bash
 # User must run these commands manually:
 yarn db:generate    # Generate migration files
-yarn db:deploy      # Deploy migrations to database
+yarn db:migrate     # Apply migrations to database
 yarn db:studio      # Open Drizzle Studio to verify
 ```
 
@@ -422,7 +422,7 @@ yarn build:worker         # Build worker only
 
 # Database
 yarn db:generate          # Generate Drizzle migrations
-yarn db:deploy            # Deploy migrations to database
+yarn db:migrate           # Apply migrations to database
 yarn db:studio            # Open Drizzle Studio (database GUI)
 yarn db:seed              # Seed database with sample data
 

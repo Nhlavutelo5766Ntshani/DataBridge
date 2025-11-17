@@ -51,8 +51,24 @@ const NewConnectionPage = () => {
     description: "",
   });
 
+  const getDefaultPort = (dbType: string): string => {
+    const portMap: Record<string, string> = {
+      postgresql: "5432",
+      mysql: "3306",
+      sqlserver: "1433",
+      mongodb: "27017",
+      couchdb: "5984",
+      oracle: "1521",
+    };
+    return portMap[dbType] || "";
+  };
+
   const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === "type") {
+      setFormData((prev) => ({ ...prev, [field]: value, port: getDefaultPort(value) }));
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleTestConnection = async () => {
@@ -227,30 +243,20 @@ const NewConnectionPage = () => {
                 </Select>
               </div>
 
-              {/* Host and Port */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="host">Host *</Label>
-                  <Input
-                    id="host"
-                    placeholder="localhost or IP address"
-                    value={formData.host}
-                    onChange={(e) => handleChange("host", e.target.value)}
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="port">Port *</Label>
-                  <Input
-                    id="port"
-                    placeholder="5432"
-                    value={formData.port}
-                    onChange={(e) => handleChange("port", e.target.value)}
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
+              {/* Server Name */}
+              <div className="space-y-2">
+                <Label htmlFor="host">Server Name *</Label>
+                <Input
+                  id="host"
+                  placeholder="e.g., localhost, 192.168.1.100, or db.example.com"
+                  value={formData.host}
+                  onChange={(e) => handleChange("host", e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter the server name or IP address where your database is hosted
+                </p>
               </div>
 
               {/* Database Name */}
