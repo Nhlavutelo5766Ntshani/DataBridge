@@ -63,8 +63,8 @@ export const ProjectsList = (): JSX.Element => {
         const result = await fetchUserProjects(userId);
         if (result.success && result.data) {
           setProjects(result.data);
-        } else {
-          toast.error("Failed to load projects");
+        } else if (result.error && !Array.isArray(result.error)) {
+          toast.error(result.error);
         }
       } catch {
         toast.error("An error occurred while loading projects");
