@@ -8,6 +8,7 @@ import { PATHS } from "@/lib/constants/paths";
 import { createErrorResponse } from "@/lib/utils/errors";
 import { ERROR_CODES } from "@/lib/constants/error-codes";
 import { createUser, getUserByEmail } from "@/db/queries/users";
+import type { SessionData } from "@/lib/auth/session";
 
 /**
  * Signup form schema
@@ -206,22 +207,16 @@ export async function logoutAction(): Promise<void> {
 /**
  * Get the current session from Supabase Auth
  */
-export async function getSessionAction() {
+export async function getSessionAction(): Promise<SessionData | null> {
   try {
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
     
-    if (error || !user) {
-      return {
-        userId: undefined,
-        email: undefined,
-        name: undefined,
-        role: undefined,
-        isLoggedIn: false,
-      };
+    if (error || !user || !user.email) {
+      return null;
     }
 
-    const dbUser = await getUserByEmail(user.email || "");
+    const dbUser = await getUserByEmail(user.email);
     
     return {
       userId: user.id,
@@ -231,13 +226,7 @@ export async function getSessionAction() {
       isLoggedIn: true,
     };
   } catch {
-    return {
-      userId: undefined,
-      email: undefined,
-      name: undefined,
-      role: undefined,
-      isLoggedIn: false,
-    };
+    return null;
   }
 }
 
