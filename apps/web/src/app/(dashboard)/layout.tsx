@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
-import { getCurrentUser } from "@/lib/auth/session";
+import { createClient } from "@/lib/auth/supabase-server";
+import { getUserByEmail } from "@/db/queries/users";
 
 export const metadata: Metadata = {
   title: {
@@ -13,7 +14,17 @@ export const metadata: Metadata = {
 };
 
 const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
-  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  
+  let user = null;
+  if (authUser) {
+    const dbUser = await getUserByEmail(authUser.email || "");
+    user = {
+      name: authUser.user_metadata?.name || dbUser?.name || "",
+      email: authUser.email || "",
+    };
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">

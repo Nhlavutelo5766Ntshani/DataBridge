@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getIronSession } from "iron-session";
-import type { SessionData } from "@/lib/auth/session";
+import { createServerClient } from "@supabase/ssr";
 
 /**
  * Public paths that don't require authentication
@@ -14,33 +13,7 @@ const publicPaths = ["/", "/login", "/signup"];
 const authPaths = ["/login", "/signup"];
 
 /**
- * Get session configuration
- */
-function getSessionOptions() {
-  const sessionPassword = process.env.SESSION_SECRET;
-  
-  if (!sessionPassword || sessionPassword.length < 32) {
-    throw new Error(
-      "SESSION_SECRET must be at least 32 characters long. " +
-      "Generate one with: openssl rand -base64 32"
-    );
-  }
-
-  return {
-    password: sessionPassword,
-    cookieName: "databridge_session",
-    cookieOptions: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax" as const,
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    },
-  };
-}
-
-/**
- * Middleware to protect routes with request logging
+ * Middleware to protect routes using Supabase Auth
  */
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -52,14 +25,37 @@ export async function middleware(request: NextRequest) {
   const isPublicPath = publicPaths.includes(path);
   const isAuthPath = authPaths.includes(path);
 
-  const response = NextResponse.next();
-  const session = await getIronSession<SessionData>(
-    request,
-    response,
-    getSessionOptions()
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          response = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
   );
 
-  const isLoggedIn = session.isLoggedIn === true;
+  const { data: { user }, error } = await supabase.auth.getUser();
+  const isLoggedIn = !error && !!user;
 
   if (isAuthPath && isLoggedIn) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
