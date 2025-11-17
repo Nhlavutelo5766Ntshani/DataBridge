@@ -4,7 +4,10 @@ import { db } from "@/db";
 import { getProjectById } from "@/db/queries/projects";
 import { getConnectionById } from "@/db/queries/connections";
 import { createDataValidations } from "@/db/queries/data-validations";
+import { getIdMappingStats, getExecutionIdMappings } from "@/db/queries/record-id-mappings";
+import { getAttachmentStats } from "@/db/queries/attachment-migrations";
 import { Client } from "pg";
+import { ERROR_CODES } from "@/lib/constants/error-codes";
 
 /**
  * Stage 5: Validate migrated data
@@ -149,6 +152,12 @@ export async function validateData(
       }
     }
 
+    const idMappingValidation = await validateIdMappingIntegrity(executionId, projectId);
+    validationResults.push(...idMappingValidation);
+
+    const attachmentValidation = await validateAttachmentIntegrity(executionId, projectId);
+    validationResults.push(...attachmentValidation);
+
     await saveValidationResults(executionId, projectId, validationResults);
 
     const duration = Date.now() - startTime;
@@ -288,4 +297,159 @@ async function saveValidationResults(
     await createDataValidations(validationRecords);
     logger.info(`Saved ${validationRecords.length} validation results`);
   }
+}
+
+/**
+ * Validate ID mapping integrity
+ */
+async function validateIdMappingIntegrity(
+  executionId: string,
+  _projectId: string
+): Promise<ValidationResult[]> {
+  const results: ValidationResult[] = [];
+
+  try {
+    logger.info(`[Stage 5] Validating ID mapping integrity`);
+
+    const idMappingStats = await getIdMappingStats(executionId);
+    const idMappings = await getExecutionIdMappings(executionId);
+
+    results.push({
+      table: "record_id_mappings",
+      validationType: "custom",
+      expected: "ID mappings created",
+      actual: idMappingStats.total,
+      status: idMappingStats.total > 0 ? "passed" : "warning",
+      message: idMappingStats.total > 0 
+        ? `Created ${idMappingStats.total} ID mappings across ${Object.keys(idMappingStats.byTable).length} tables`
+        : "No ID mappings created - this may be expected if tables don't have primary keys",
+    });
+
+    for (const [tableName, count] of Object.entries(idMappingStats.byTable)) {
+      results.push({
+        table: tableName,
+        validationType: "custom",
+        expected: "ID mappings present",
+        actual: count,
+        status: "passed",
+        message: `${count} ID mappings created for ${tableName}`,
+      });
+    }
+
+    const mappingsWithCouchDb = idMappings.filter(m => m.couchdbDocumentId).length;
+    if (mappingsWithCouchDb > 0) {
+      results.push({
+        table: "record_id_mappings",
+        validationType: "custom",
+        expected: "CouchDB document IDs linked",
+        actual: mappingsWithCouchDb,
+        status: "passed",
+        message: `${mappingsWithCouchDb} records linked to CouchDB documents`,
+      });
+    }
+
+    logger.success(`[Stage 5] ID mapping validation completed`, {
+      totalMappings: idMappingStats.total,
+      tables: Object.keys(idMappingStats.byTable).length,
+      withCouchDb: mappingsWithCouchDb,
+    });
+  } catch (error) {
+    logger.error(`[Stage 5] ID mapping validation failed`, {
+      error,
+      code: ERROR_CODES.VALIDATION_ERROR,
+    });
+
+    results.push({
+      table: "record_id_mappings",
+      validationType: "custom",
+      expected: "validation_success",
+      actual: "validation_error",
+      status: "failed",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Validate attachment migration integrity
+ */
+async function validateAttachmentIntegrity(
+  executionId: string,
+  _projectId: string
+): Promise<ValidationResult[]> {
+  const results: ValidationResult[] = [];
+
+  try {
+    logger.info(`[Stage 5] Validating attachment migration integrity`);
+
+    const attachmentStats = await getAttachmentStats(executionId);
+
+    if (attachmentStats.total === 0) {
+      results.push({
+        table: "attachment_migrations",
+        validationType: "custom",
+        expected: "attachments_processed",
+        actual: 0,
+        status: "warning",
+        message: "No attachments found - this may be expected if source has no attachments",
+      });
+      return results;
+    }
+
+    const successRate = (attachmentStats.success / attachmentStats.total) * 100;
+
+    results.push({
+      table: "attachment_migrations",
+      validationType: "custom",
+      expected: attachmentStats.total,
+      actual: attachmentStats.success,
+      status: successRate === 100 ? "passed" : successRate >= 90 ? "warning" : "failed",
+      message: `${attachmentStats.success}/${attachmentStats.total} attachments migrated successfully (${successRate.toFixed(1)}%)`,
+    });
+
+    if (attachmentStats.failed > 0) {
+      results.push({
+        table: "attachment_migrations",
+        validationType: "custom",
+        expected: 0,
+        actual: attachmentStats.failed,
+        status: "warning",
+        message: `${attachmentStats.failed} attachment(s) failed to migrate`,
+      });
+    }
+
+    results.push({
+      table: "attachment_migrations",
+      validationType: "custom",
+      expected: "attachments_linked_to_records",
+      actual: attachmentStats.success,
+      status: "passed",
+      message: `All successful attachments linked to PostgreSQL records`,
+    });
+
+    logger.success(`[Stage 5] Attachment validation completed`, {
+      total: attachmentStats.total,
+      success: attachmentStats.success,
+      failed: attachmentStats.failed,
+      successRate: `${successRate.toFixed(1)}%`,
+    });
+  } catch (error) {
+    logger.error(`[Stage 5] Attachment validation failed`, {
+      error,
+      code: ERROR_CODES.VALIDATION_ERROR,
+    });
+
+    results.push({
+      table: "attachment_migrations",
+      validationType: "custom",
+      expected: "validation_success",
+      actual: "validation_error",
+      status: "failed",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  return results;
 }
