@@ -57,6 +57,7 @@ export type StageResult = {
   duration: number;
   error?: string;
   metadata?: Record<string, unknown>;
+  idMappingsCreated?: number;
 };
 
 /**
@@ -87,6 +88,32 @@ export type ColumnMapping = {
 };
 
 /**
+ * Record ID Mapping for tracking source-to-target ID transformations
+ */
+export type RecordIdMappingData = {
+  executionId: string;
+  projectId: string;
+  tableName: string;
+  sourceId: string;
+  sourceIdColumn: string;
+  targetId: string;
+  targetIdColumn?: string;
+  couchdbDocumentId?: string;
+  metadata?: Record<string, unknown>;
+};
+
+/**
+ * ID Mapping Result for a single record
+ */
+export type IdMappingResult = {
+  sourceId: string;
+  targetId: string;
+  tableName: string;
+  success: boolean;
+  error?: string;
+};
+
+/**
  * Attachment Metadata for CouchDB → SAP migration
  */
 export type AttachmentMetadata = {
@@ -95,6 +122,7 @@ export type AttachmentMetadata = {
   contentType: string;
   size: number;
   sourceUrl?: string;
+  postgresqlRecordId?: string;
 };
 
 /**
@@ -105,6 +133,7 @@ export type AttachmentMigrationResult = {
   attachmentName: string;
   success: boolean;
   targetUrl?: string;
+  postgresqlRecordId?: string;
   error?: string;
 };
 
@@ -137,6 +166,7 @@ export type MigrationReport = {
     failedRecords: number;
     attachmentsMigrated: number;
     attachmentsFailed: number;
+    idMappingsCreated: number;
   };
   stages: Array<{
     name: string;

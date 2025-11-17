@@ -172,18 +172,27 @@ async function testSQLServer(
   username: string,
   password: string
 ): Promise<QueryResponse<{ message: string }>> {
+  const isNamedInstance = host.includes("\\");
+  
   const config: sql.config = {
     server: host,
-    port,
     database,
     user: username,
     password,
     options: {
       encrypt: true,
-      trustServerCertificate: false,
+      trustServerCertificate: true,
       connectTimeout: 10000,
+      enableArithAbort: true,
+      instanceName: isNamedInstance ? host.split("\\")[1] : undefined,
     },
   };
+  
+  if (!isNamedInstance) {
+    config.port = port;
+  } else {
+    config.server = host.split("\\")[0];
+  }
 
   try {
     logger.info("Testing SQL Server connection", { host, port, database, username });

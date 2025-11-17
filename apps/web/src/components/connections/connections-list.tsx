@@ -190,7 +190,7 @@ export const ConnectionsList = (): JSX.Element => {
         </CardHeader>
         <CardContent className="pt-6">
           {connections.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="flex flex-col items-center justify-center py-8 pb-4 text-center">
               <Database className="h-16 w-16 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No connections yet</h3>
               <p className="text-muted-foreground mb-6 max-w-md">

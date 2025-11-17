@@ -69,8 +69,6 @@ export async function signupAction(
       data: { userId: user.id },
     };
   } catch (error) {
-    console.error("[SIGNUP] Error details:", error);
-    
     if (error instanceof z.ZodError) {
       return createErrorResponse(
         error.errors[0].message,
@@ -79,13 +77,23 @@ export async function signupAction(
     }
 
     if (error instanceof Error) {
-      console.error("[SIGNUP] Error message:", error.message);
-      console.error("[SIGNUP] Error stack:", error.stack);
-      return createErrorResponse(error.message, ERROR_CODES.DB_ERROR);
+      if (error.message.includes("ECONNREFUSED") || error.message.includes("connect")) {
+        return createErrorResponse(
+          "Unable to connect. Please try again later.",
+          ERROR_CODES.CONNECTION_FAILED
+        );
+      }
+      
+      if (error.message.includes("duplicate") || error.message.includes("unique")) {
+        return createErrorResponse(
+          "An account with this email already exists",
+          ERROR_CODES.VALIDATION_ERROR
+        );
+      }
     }
 
     return createErrorResponse(
-      "Failed to create account",
+      "Unable to create account. Please try again.",
       ERROR_CODES.AUTH_ERROR
     );
   }
@@ -150,10 +158,25 @@ export async function loginAction(
     }
 
     if (error instanceof Error) {
-      return createErrorResponse(error.message, ERROR_CODES.DB_ERROR);
+      if (error.message.includes("ECONNREFUSED") || error.message.includes("connect")) {
+        return createErrorResponse(
+          "Unable to connect. Please try again later.",
+          ERROR_CODES.CONNECTION_FAILED
+        );
+      }
+      
+      if (error.message.includes("password") || error.message.includes("authentication")) {
+        return createErrorResponse(
+          "Invalid email or password",
+          ERROR_CODES.AUTH_ERROR
+        );
+      }
     }
 
-    return createErrorResponse("Failed to log in", ERROR_CODES.AUTH_ERROR);
+    return createErrorResponse(
+      "Unable to sign in. Please check your credentials and try again.",
+      ERROR_CODES.AUTH_ERROR
+    );
   }
 }
 

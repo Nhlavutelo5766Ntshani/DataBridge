@@ -4,6 +4,7 @@ import { getProjectById } from "@/db/queries/projects";
 import { getExecutionStages } from "@/db/queries/etl-executions";
 import { getExecutionValidations } from "@/db/queries/data-validations";
 import { getAttachmentStats } from "@/db/queries/attachment-migrations";
+import { getIdMappingStats } from "@/db/queries/record-id-mappings";
 import { createMigrationReport } from "@/db/queries/migration-reports";
 
 /**
@@ -43,6 +44,7 @@ export async function generateMigrationReport(
     const stages = await getExecutionStages(executionId);
     const validations = await getExecutionValidations(executionId);
     const attachmentStats = await getAttachmentStats(executionId);
+    const idMappingStats = await getIdMappingStats(executionId);
 
     const executionStartTime = stages[0]?.createdAt || new Date();
     const lastStage = stages[stages.length - 1];
@@ -68,6 +70,7 @@ export async function generateMigrationReport(
       failedRecords,
       attachmentsMigrated: attachmentStats?.success || 0,
       attachmentsFailed: attachmentStats?.failed || 0,
+      idMappingsCreated: idMappingStats?.total || 0,
     };
 
     const stagesSummary = stages.map((stage) => ({

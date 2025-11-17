@@ -415,6 +415,41 @@ export const etlExecutionStages = pgTable(
 );
 
 /**
+ * Record ID Mappings - Tracks ID transformations across source and target databases
+ * Critical for maintaining data lineage and referential integrity
+ */
+export const recordIdMappings = pgTable(
+  "record_id_mappings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    executionId: varchar("execution_id", { length: 255 }).notNull(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => mappingProjects.id, { onDelete: "cascade" }),
+    tableName: varchar("table_name", { length: 255 }).notNull(),
+    sourceId: varchar("source_id", { length: 500 }).notNull(),
+    sourceIdColumn: varchar("source_id_column", { length: 255 }).notNull(),
+    targetId: uuid("target_id").notNull(),
+    targetIdColumn: varchar("target_id_column", { length: 255 }).notNull().default("id"),
+    couchdbDocumentId: varchar("couchdb_document_id", { length: 500 }),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    uniqueRecordMapping: unique("unique_record_mapping").on(
+      t.executionId,
+      t.tableName,
+      t.sourceId
+    ),
+    executionIdx: index("idx_record_mappings_execution").on(t.executionId),
+    projectIdx: index("idx_record_mappings_project").on(t.projectId),
+    sourceIdx: index("idx_record_mappings_source").on(t.sourceId),
+    targetIdx: index("idx_record_mappings_target").on(t.targetId),
+    couchdbIdx: index("idx_record_mappings_couchdb").on(t.couchdbDocumentId),
+  })
+);
+
+/**
  * Attachment Migrations - Tracks CouchDB to SAP Object Store migrations
  */
 export const attachmentMigrations = pgTable(
@@ -427,6 +462,7 @@ export const attachmentMigrations = pgTable(
       .references(() => mappingProjects.id, { onDelete: "cascade" }),
     documentId: varchar("document_id", { length: 255 }).notNull(),
     attachmentName: varchar("attachment_name", { length: 500 }).notNull(),
+    postgresqlRecordId: uuid("postgresql_record_id"),
     sourceUrl: text("source_url"),
     targetUrl: text("target_url"),
     contentType: varchar("content_type", { length: 100 }),
@@ -445,6 +481,7 @@ export const attachmentMigrations = pgTable(
     executionIdx: index("idx_attachment_migrations_execution").on(t.executionId),
     projectIdx: index("idx_attachment_migrations_project").on(t.projectId),
     statusIdx: index("idx_attachment_migrations_status").on(t.status),
+    postgresqlRecordIdx: index("idx_attachment_migrations_pg_record").on(t.postgresqlRecordId),
   })
 );
 
