@@ -266,7 +266,6 @@ CREATE INDEX IF NOT EXISTS "airflow_dag_runs_dag_id_idx" ON "airflow_dag_runs" (
 CREATE INDEX IF NOT EXISTS "idx_attachment_migrations_execution" ON "attachment_migrations" ("execution_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_attachment_migrations_project" ON "attachment_migrations" ("project_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_attachment_migrations_status" ON "attachment_migrations" ("status");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_attachment_migrations_pg_record" ON "attachment_migrations" ("postgresql_record_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "column_mappings_table_mapping_id_idx" ON "column_mappings" ("table_mapping_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "connections_user_id_idx" ON "connections" ("user_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "connections_type_idx" ON "connections" ("type");--> statement-breakpoint
