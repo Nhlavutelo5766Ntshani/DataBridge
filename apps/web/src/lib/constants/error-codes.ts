@@ -15,6 +15,7 @@ export const ERROR_CODES = {
   TIMEOUT: "TIMEOUT",
   LIMIT_EXCEEDED: "LIMIT_EXCEEDED",
   AUTH_ERROR: "AUTH_ERROR",
+  SERVER_ERROR: "SERVER_ERROR",
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -39,5 +40,6 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ERROR_CODES.TIMEOUT]: "The operation took too long to complete",
   [ERROR_CODES.LIMIT_EXCEEDED]: "Operation limits exceeded",
   [ERROR_CODES.AUTH_ERROR]: "Authentication failed",
+  [ERROR_CODES.SERVER_ERROR]: "Server configuration error",
 };
 
