@@ -213,6 +213,11 @@ jobs:
       - name: Build schema package
         run: yarn workspace @databridge/schema build
 
+      - name: Run database migrations
+        run: yarn db:migrate
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
       - name: Deploy to Vercel (Development)
         uses: amondnet/vercel-action@v25
         with:
@@ -298,6 +303,11 @@ jobs:
 
       - name: Build schema package
         run: yarn workspace @databridge/schema build
+
+      - name: Run database migrations
+        run: yarn db:migrate
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
 
       - name: Deploy to Vercel (Production)
         uses: amondnet/vercel-action@v25
