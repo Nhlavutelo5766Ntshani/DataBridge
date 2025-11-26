@@ -173,6 +173,7 @@ async function testSQLServer(
   password: string
 ): Promise<QueryResponse<{ message: string }>> {
   const isNamedInstance = host.includes("\\");
+  const isAzureSQL = host.toLowerCase().includes("database.windows.net");
   
   const config: sql.config = {
     server: host,
@@ -180,8 +181,8 @@ async function testSQLServer(
     user: username,
     password,
     options: {
-      encrypt: true,
-      trustServerCertificate: true,
+      encrypt: isAzureSQL,
+      trustServerCertificate: !isAzureSQL,
       connectTimeout: 10000,
       enableArithAbort: true,
       instanceName: isNamedInstance ? host.split("\\")[1] : undefined,
@@ -195,7 +196,19 @@ async function testSQLServer(
   }
 
   try {
-    logger.info("Testing SQL Server connection", { host, port, database, username });
+    logger.info("Testing SQL Server connection", { 
+      host, 
+      port, 
+      database, 
+      username,
+      config: {
+        server: config.server,
+        port: config.port,
+        encrypt: config.options?.encrypt,
+        trustServerCertificate: config.options?.trustServerCertificate,
+        instanceName: config.options?.instanceName
+      }
+    });
     const pool = await sql.connect(config);
     await pool.request().query("SELECT 1 as test");
     await pool.close();
@@ -205,7 +218,17 @@ async function testSQLServer(
       message: "SQL Server connection successful!",
     });
   } catch (error: unknown) {
-    logger.error("SQL Server connection failed", { error, host, port, database });
+    const errorObj = error as { code?: string; message?: string; originalError?: { code?: string; message?: string } };
+    logger.error("SQL Server connection failed", { 
+      error, 
+      errorCode: errorObj.code,
+      errorMessage: errorObj.message,
+      originalError: errorObj.originalError,
+      host, 
+      port, 
+      database,
+      fullConfig: config
+    });
     
     if (error instanceof Error) {
       if (error.message.includes("Login failed")) {
@@ -240,6 +263,16 @@ async function testSQLServer(
           success: false,
           data: null,
           error: "Connection timeout. The database server might be unreachable or too slow to respond.",
+          code: ERROR_CODES.CONNECTION_FAILED,
+        };
+      }
+      
+      if (error.message.includes("ESOCKET")) {
+        const errorDetails = error as { originalError?: { message?: string } };
+        return {
+          success: false,
+          data: null,
+          error: `Network error connecting to SQL Server. Details: ${errorDetails.originalError?.message || error.message}. Please check: 1) VPN connection, 2) Server name is correct, 3) SQL Server is running, 4) Network/firewall allows connection.`,
           code: ERROR_CODES.CONNECTION_FAILED,
         };
       }
